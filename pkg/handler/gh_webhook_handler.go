@@ -13,7 +13,7 @@ import "github.com/gin-gonic/gin"
 
 type GHWebhookHandler struct {
 	db    *gorm.DB
-	queue Queue
+	queue model.Queue
 }
 
 func (h *GHWebhookHandler) Post(c *gin.Context) {

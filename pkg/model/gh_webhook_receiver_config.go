@@ -7,7 +7,7 @@ const (
 
 type GHWebhookReceiverConfig struct {
 	Type   string // local or http or
-	Config map[string]string
+	Config map[string]interface{}
 }
 
 /**
