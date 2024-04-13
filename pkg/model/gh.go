@@ -6,6 +6,6 @@ import "gorm.io/gorm"
 type GitHub struct {
 	gorm.Model
 	Web  string
-	API  string
-	Name string
+	API  string `gorm:"uniqueIndex"`
+	Name string `gorm:"uniqueIndex"`
 }

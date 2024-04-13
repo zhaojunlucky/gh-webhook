@@ -1,0 +1,5 @@
+db-type: sqlite3
+db-dsn: "/tmp/gh_pr.db"
+listen-addr: ":8080"
+api-url: "http://localhost:8080/api"
+api-prefix: /api

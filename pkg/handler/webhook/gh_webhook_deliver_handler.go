@@ -1,11 +1,11 @@
-package model
+package webhook
 
 import (
 	"encoding/json"
 	"fmt"
 	"gh-webhook/pkg/config"
-	"gh-webhook/pkg/handler"
 	"gh-webhook/pkg/launcher"
+	"gh-webhook/pkg/model"
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
@@ -18,7 +18,7 @@ import (
 	"sync/atomic"
 )
 
-type Queue chan GHWebHookEvent
+type Queue chan model.GHWebHookEvent
 
 type GHWebhookDeliverHandler struct {
 	queue        Queue
@@ -60,8 +60,8 @@ func (h *GHWebhookDeliverHandler) Close() error {
 	return nil
 }
 
-func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent GHWebHookEvent) {
-	receiverLog := GHWebhookEventDelivers{
+func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent model.GHWebHookEvent) {
+	receiverLog := model.GHWebhookEventDelivers{
 		GHWebHookEventId: ghEvent.ID,
 		GHWebHookEvent:   ghEvent,
 	}
@@ -81,7 +81,7 @@ func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent GHWebHookEvent
 		return
 	}
 
-	var receiver []GHWebHookReceiver
+	var receiver []model.GHWebHookReceiver
 	r := h.db.Where("github_id = ?", ghEvent.GitHubId).Find(&receiver)
 	if r.Error != nil {
 		log.Errorf("[go routine %d] failed to find receiver: %v", routineId, r.Error)
@@ -107,8 +107,8 @@ func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent GHWebHookEvent
 	}
 }
 
-func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re GHWebHookReceiver, event GHWebHookEvent, payload map[string]interface{}) GHWebHookEventReceiverDeliver {
-	receiverDeliver := GHWebHookEventReceiverDeliver{
+func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re model.GHWebHookReceiver, event model.GHWebHookEvent, payload map[string]interface{}) model.GHWebHookEventReceiverDeliver {
+	receiverDeliver := model.GHWebHookEventReceiverDeliver{
 		GHWebHookReceiverId: re.ID,
 	}
 	receiverDeliver.Delivered = false
@@ -160,7 +160,7 @@ func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re GHWebHookRe
 	return receiverDeliver
 }
 
-func (h *GHWebhookDeliverHandler) launchDelivery(routineId int32, re GHWebHookReceiver, event GHWebHookEvent) error {
+func (h *GHWebhookDeliverHandler) launchDelivery(routineId int32, re model.GHWebHookReceiver, event model.GHWebHookEvent) error {
 
 	launcherInst, err := launcher.NewLauncher(re.ReceiverConfig.Type)
 
@@ -171,7 +171,7 @@ func (h *GHWebhookDeliverHandler) launchDelivery(routineId int32, re GHWebHookRe
 	return launcherInst.Launch(routineId, h.config, re, event)
 }
 
-func (h *GHWebhookDeliverHandler) matchOrgRepo(routineId int32, orgRepo string, event GHWebHookEvent) error {
+func (h *GHWebhookDeliverHandler) matchOrgRepo(routineId int32, orgRepo string, event model.GHWebHookEvent) error {
 	if len(orgRepo) > 0 {
 		matched, err := regexp.MatchString(orgRepo, event.OrgRepo)
 		if err != nil {
@@ -189,7 +189,7 @@ func (h *GHWebhookDeliverHandler) matchOrgRepo(routineId int32, orgRepo string, 
 	return nil
 }
 
-func (h *GHWebhookDeliverHandler) matchExpr(routineId int32, sub GHWebHookSubscribe, event GHWebHookEvent) error {
+func (h *GHWebhookDeliverHandler) matchExpr(routineId int32, sub model.GHWebHookSubscribe, event model.GHWebHookEvent) error {
 	if len(sub.Expr) > 0 {
 		prog, ok := h.compiledExpr.Load(sub.Expr)
 		var program *vm.Program
@@ -209,7 +209,7 @@ func (h *GHWebhookDeliverHandler) matchExpr(routineId int32, sub GHWebHookSubscr
 		}
 		output, err := expr.Run(program, env)
 		if err != nil {
-			log.Errorf("failed to run expr %s: %v", sub.Expr, err)
+			log.Errorf("[go routine %d] failed to run expr %s: %v", routineId, sub.Expr, err)
 		}
 		if output.(bool) {
 			log.Infof("[go routine %d] matched expr %s", routineId, sub.Expr)
@@ -218,25 +218,25 @@ func (h *GHWebhookDeliverHandler) matchExpr(routineId int32, sub GHWebHookSubscr
 	return nil
 }
 
-func (h *GHWebhookDeliverHandler) match(routineId int32, sub GHWebHookSubscribe, event GHWebHookEvent, payload map[string]interface{}) error {
+func (h *GHWebhookDeliverHandler) match(routineId int32, sub model.GHWebHookSubscribe, event model.GHWebHookEvent, payload map[string]interface{}) error {
 	switch sub.Event {
-	case handler.PullRequest:
+	case model.EPullRequest:
 		return h.handlerPullRequest(routineId, sub, event, payload)
-	case handler.Push:
+	case model.EPush:
 		return h.handlerPush(routineId, sub, event, payload)
-	case handler.IssueComment:
+	case model.EIssueComment:
 		return h.handlerIssueComment(routineId, sub, event, payload)
 	default:
 		return nil
 	}
 }
 
-func (h *GHWebhookDeliverHandler) handlerPullRequest(routineId int32, sub GHWebHookSubscribe, event GHWebHookEvent, payload map[string]interface{}) error {
+func (h *GHWebhookDeliverHandler) handlerPullRequest(routineId int32, sub model.GHWebHookSubscribe, event model.GHWebHookEvent, payload map[string]interface{}) error {
 	if len(sub.PullRequest.AllowedBaseBranches) <= 0 && len(sub.PullRequest.DisallowedBaseBranches) <= 0 {
 		return nil
 	}
 
-	baseBranchObj, err := jsonpath.Get(fmt.Sprintf("%s.base.ref", handler.PullRequest), payload)
+	baseBranchObj, err := jsonpath.Get(fmt.Sprintf("%s.base.ref", model.EPullRequest), payload)
 	if err != nil {
 		return err
 	}
@@ -272,12 +272,12 @@ func (h *GHWebhookDeliverHandler) handlerPullRequest(routineId int32, sub GHWebH
 	return nil
 }
 
-func (h *GHWebhookDeliverHandler) handlerPush(routineId int32, sub GHWebHookSubscribe, event GHWebHookEvent, payload map[string]interface{}) error {
+func (h *GHWebhookDeliverHandler) handlerPush(routineId int32, sub model.GHWebHookSubscribe, event model.GHWebHookEvent, payload map[string]interface{}) error {
 	if len(sub.Push.AllowedPushRefs) <= 0 {
 		return nil
 	}
 
-	pushRefObj, err := jsonpath.Get("ref", payload)
+	pushRefObj, err := jsonpath.Get("$.ref", payload)
 
 	if err != nil {
 		return err
@@ -297,12 +297,12 @@ func (h *GHWebhookDeliverHandler) handlerPush(routineId int32, sub GHWebHookSubs
 	return fmt.Errorf("[go routine %d] allowed push ref doesn't match", routineId)
 }
 
-func (h *GHWebhookDeliverHandler) handlerIssueComment(id int32, sub GHWebHookSubscribe, event GHWebHookEvent, payload map[string]interface{}) error {
+func (h *GHWebhookDeliverHandler) handlerIssueComment(id int32, sub model.GHWebHookSubscribe, event model.GHWebHookEvent, payload map[string]interface{}) error {
 	if len(sub.IssueComment.AllowedComments) <= 0 {
 		return nil
 	}
 
-	commentObj, err := jsonpath.Get("comment.body", payload)
+	commentObj, err := jsonpath.Get("$.comment.body", payload)
 
 	if err != nil {
 		return err

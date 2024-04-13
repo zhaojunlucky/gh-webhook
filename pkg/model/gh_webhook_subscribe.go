@@ -14,11 +14,11 @@ type IssueComment struct {
 }
 
 type GHWebHookSubscribe struct {
-	Event        string   // mandatory
-	Actions      []string // optional
-	OrgRepo      string   // optional, null to match all, regex
-	PullRequest  PullRequestSubscribe
-	Push         PushSubscribe
-	IssueComment IssueComment
-	Expr         string // https://expr-lang.org/docs/configuration
+	Event        string               // mandatory
+	Actions      []string             `gorm:"serializer:json"` // optional
+	OrgRepo      string               // optional, null to match all, regex
+	PullRequest  PullRequestSubscribe `gorm:"serializer:json"`
+	Push         PushSubscribe        `gorm:"serializer:json"`
+	IssueComment IssueComment         `gorm:"serializer:json"`
+	Expr         string               // https://expr-lang.org/docs/configuration
 }

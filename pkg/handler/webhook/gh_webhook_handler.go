@@ -1,7 +1,9 @@
-package handler
+package webhook
 
 import (
 	"encoding/json"
+	"fmt"
+	"gh-webhook/pkg/core"
 	"gh-webhook/pkg/model"
 	"github.com/PaesslerAG/jsonpath"
 	log "github.com/sirupsen/logrus"
@@ -13,10 +15,14 @@ import "github.com/gin-gonic/gin"
 
 type GHWebhookHandler struct {
 	db    *gorm.DB
-	queue model.Queue
+	queue Queue
 }
 
 func (h *GHWebhookHandler) Post(c *gin.Context) {
+	if !h.validate(c) {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Failed to validate webhook"})
+		return
+	}
 	var github model.GitHub
 	r := h.db.First(&github, "api = ?", c.Request.Host)
 	if r.Error != nil {
@@ -40,7 +46,7 @@ func (h *GHWebhookHandler) Post(c *gin.Context) {
 		log.Errorf("failed to unmarshal payload: %v", err)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "Failed to unmarshal payload as map[string]interface{}"})
 	}
-	action, err := jsonpath.Get("action", payload)
+	action, err := jsonpath.Get("$.action", payload)
 	if err != nil {
 		log.Errorf("failed to get action from payload: %v", err)
 	} else {
@@ -75,4 +81,14 @@ func (h *GHWebhookHandler) Post(c *gin.Context) {
 
 func (h *GHWebhookHandler) push(event model.GHWebHookEvent) {
 	h.queue <- event
+}
+
+func (h *GHWebhookHandler) validate(c *gin.Context) bool {
+	return true
+}
+
+func (h *GHWebhookHandler) Register(c *core.GHPRContext) error {
+	h.db = c.Db
+	c.Gin.POST(fmt.Sprintf("%s/gh-webhook/", c.Cfg.APIPrefix), h.Post)
+	return nil
 }
