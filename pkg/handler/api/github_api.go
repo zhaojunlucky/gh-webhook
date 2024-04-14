@@ -5,9 +5,12 @@ import (
 	"gh-webhook/pkg/core"
 	"gh-webhook/pkg/model"
 	"github.com/gin-gonic/gin"
+	"github.com/si3nloong/go-rsql"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"net/http"
+	"time"
 )
 
 type GitHubCreateDTO struct {
@@ -20,6 +23,15 @@ type GitHubUpdateDTO struct {
 	Web  string `json:"web" `
 	API  string `json:"api" `
 	Name string `json:"name" `
+}
+
+type GitHubSearchDTO struct {
+	ID        uint      `json:"id" rsql:"id,filter,sort"`
+	CreatedAt time.Time `json:"createdAt" `
+	UpdatedAt time.Time `json:"updatedAt" `
+	Web       string    `json:"web" rsql:"web,filter,sort"`
+	API       string    `json:"api" rsql:"api,filter,sort"`
+	Name      string    `json:"name" rsql:"name,filter,sort"`
 }
 
 type GitHubAPIHandler struct {
@@ -120,4 +132,50 @@ func (h *GitHubAPIHandler) Update(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, model.NewIDResponse(github.ID))
+}
+
+func (h *GitHubAPIHandler) Delete(c *gin.Context) {
+	id, err := core.UIntParam(c, "id")
+	if err != nil {
+		log.Errorf("failed to convert id: %v", err)
+		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
+		return
+	}
+	db := h.db.Delete(&model.GitHub{}, "id = ?", id)
+	if db.Error != nil {
+		log.Errorf("failed to delete github: %v", db.Error)
+		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
+		return
+	}
+	if db.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, model.NewErrorMsgDTO(http.StatusText(http.StatusNotFound)))
+		return
+	}
+	c.JSON(http.StatusNoContent, nil)
+}
+
+func (h *GitHubAPIHandler) List(c *gin.Context) {
+	page := core.ParsePagination(c)
+	var query GitHubSearchDTO
+	q := rsql.MustNew(query)
+	rq, err := q.ParseQuery(c.Request.URL.RawQuery)
+	if err != nil {
+		log.Error(err)
+		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
+		return
+	}
+	h.db.Order(clause.OrderByColumn{
+		Column:  clause.Column{},
+		Desc:    false,
+		Reorder: false,
+	}).Scopes(rq).Offset(page.OffSet).Limit(page.Limit).Find(&query.GitHubList)
+
+	var githubs []model.GitHub
+	db := h.db.Find(&githubs)
+	if db.Error != nil {
+		log.Errorf("failed to find githubs: %v", db.Error)
+		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
+		return
+	}
+	c.JSON(http.StatusOK, githubs)
 }
