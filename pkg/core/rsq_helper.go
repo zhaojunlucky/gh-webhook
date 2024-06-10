@@ -22,16 +22,27 @@ var OperationMap = map[string]string{
 	"$nin": "not in",
 }
 
-type RSQLHelper struct {
-	FilterSQL string
-	Arguments []interface{}
-	SortSQL   string
+type FieldQuery struct {
+	AllowSort   bool
+	AllowFilter bool
 }
 
-func (r *RSQLHelper) ParseFilter(c *gin.Context) error {
+type RSQLHelper struct {
+	FilterSQL   string
+	Arguments   []interface{}
+	SortSQL     string
+	FieldsQuery map[string]*FieldQuery
+}
+
+func (r *RSQLHelper) ParseFilter(queryType any, c *gin.Context) error {
+	err := r.parseFieldsQuery(queryType)
+	if err != nil {
+		return err
+	}
 	filter := c.Query("filter")
 	sort := c.Query("sort")
-	err := r.parseFilter(filter)
+
+	err = r.parseFilter(filter)
 	if err != nil {
 		return nil
 	}
@@ -41,6 +52,12 @@ func (r *RSQLHelper) ParseFilter(c *gin.Context) error {
 }
 
 func (r *RSQLHelper) parseFilter(filter string) error {
+	if len(filter) == 0 {
+		r.FilterSQL = ""
+		r.Arguments = make([]interface{}, 0)
+
+		return nil
+	}
 	parser, err := rsql.NewParser(rsql.Mongo())
 	if err != nil {
 		log.Errorf("error while creating parser: %s", err)
@@ -128,6 +145,9 @@ func (r *RSQLHelper) _parseRSQL(query map[string]interface{}) ([]string, []inter
 
 	} else {
 		sqls := []string{key}
+		if !r.allowFilterField(key) {
+			return nil, nil, fmt.Errorf("field %s is not allowed to filter", key)
+		}
 		switch v := q.(type) {
 		case map[string]interface{}:
 			opVal := reflect.ValueOf(v).MapKeys()
@@ -154,6 +174,10 @@ func (r *RSQLHelper) _parseRSQL(query map[string]interface{}) ([]string, []inter
 }
 
 func (r *RSQLHelper) parseSort(sort string) error {
+	if len(sort) == 0 {
+		r.SortSQL = ""
+		return nil
+	}
 	cols := strings.Split(sort, ";")
 	var orders []string
 	for _, v := range cols {
@@ -169,6 +193,10 @@ func (r *RSQLHelper) parseSort(sort string) error {
 		field := strings.TrimSpace(fieldDirection[0])
 		if len(field) == 0 {
 			return fmt.Errorf("rsql: invalid sort %s", v)
+		}
+
+		if !r.allowSortField(field) {
+			return fmt.Errorf("rsql: invalid sort field %s, it's not allowed to sort", v)
 		}
 
 		if len(fieldDirection) == 2 {
@@ -190,6 +218,54 @@ func (r *RSQLHelper) parseSort(sort string) error {
 	return nil
 }
 
+func (r *RSQLHelper) parseFieldsQuery(queryType any) error {
+	typ := reflect.TypeOf(queryType)
+	if typ.Kind() != reflect.Struct {
+		return fmt.Errorf("%s is not a struct", typ)
+	}
+	for i := 0; i < typ.NumField(); i++ {
+		fld := typ.Field(i)
+		if qName := fld.Tag.Get("rsql"); qName != "" {
+			tags := strings.Split(qName, ",")
+			name := strings.TrimSpace(tags[0])
+			r.FieldsQuery[name] = &FieldQuery{
+				AllowFilter: false,
+				AllowSort:   false,
+			}
+
+			for j := 1; j < len(tags); j++ {
+				tag := strings.ToLower(strings.TrimSpace(tags[j]))
+				if tag == "filter" {
+					r.FieldsQuery[name].AllowFilter = true
+				} else if tag == "sort" {
+					r.FieldsQuery[name].AllowSort = true
+				} else {
+					log.Errorf("unknown tag %s", tag)
+				}
+
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *RSQLHelper) allowSortField(field string) bool {
+	if val, ok := r.FieldsQuery[field]; ok {
+		return val.AllowSort
+	}
+	return false
+}
+
+func (r *RSQLHelper) allowFilterField(field string) bool {
+	if val, ok := r.FieldsQuery[field]; ok {
+		return val.AllowFilter
+	}
+	return false
+}
+
 func NewRSQLHelper() *RSQLHelper {
-	return &RSQLHelper{}
+	return &RSQLHelper{
+		FieldsQuery: make(map[string]*FieldQuery),
+	}
 }

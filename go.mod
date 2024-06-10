@@ -4,6 +4,7 @@ go 1.22.1
 
 require (
 	github.com/PaesslerAG/jsonpath v0.1.1
+	github.com/dranikpg/dto-mapper v0.2.1
 	github.com/expr-lang/expr v1.16.3
 	github.com/gin-gonic/gin v1.9.1
 	github.com/rbicker/go-rsql v0.4.0

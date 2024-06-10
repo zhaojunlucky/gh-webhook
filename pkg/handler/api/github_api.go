@@ -4,10 +4,10 @@ import (
 	"errors"
 	"gh-webhook/pkg/core"
 	"gh-webhook/pkg/model"
+	"github.com/dranikpg/dto-mapper"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"net/http"
 	"time"
 )
@@ -83,7 +83,16 @@ func (h *GitHubAPIHandler) Get(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(err))
 		return
 	}
-	c.JSON(http.StatusOK, model.NewIDResponse(github.ID))
+	mapper := dto.Mapper{}
+	to := GitHubSearchDTO{}
+	err = mapper.Map(&to, github)
+	if err != nil {
+		log.Errorf("failed to convert id: %v", err)
+		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, to)
 }
 
 func (h *GitHubAPIHandler) Update(c *gin.Context) {
@@ -155,18 +164,31 @@ func (h *GitHubAPIHandler) Delete(c *gin.Context) {
 
 func (h *GitHubAPIHandler) List(c *gin.Context) {
 	page := core.ParsePagination(c)
-	var query GitHubSearchDTO
 
-	db := h.db.Order(clause.OrderByColumn{
-		Column:  clause.Column{},
-		Desc:    false,
-		Reorder: false,
-	}).Clauses().Limit(page.Size).Offset((page.Page - 1) * page.Size).Find(&githubs)
+	rsqlQuery := core.NewRSQLHelper()
+	err := rsqlQuery.ParseFilter(GitHubSearchDTO{}, c)
+	if err != nil {
+		log.Errorf("failed to parse filter: %v", err)
+		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
+		return
+	}
+	var githubs []model.GitHub
+	db := h.db.Order(rsqlQuery.SortSQL).Where(rsqlQuery.FilterSQL, rsqlQuery.Arguments...).
+		Limit(page.Size).Offset((page.Page - 1) * page.Size).Find(&githubs)
 
 	if db.Error != nil {
 		log.Errorf("failed to find githubs: %v", db.Error)
 		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
 		return
 	}
+	var githubDTOs []GitHubSearchDTO
+	mapper := dto.Mapper{}
+	err = mapper.Map(&githubDTOs, githubs)
+	if err != nil {
+		log.Errorf("failed to find githubs: %v", db.Error)
+		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
+		return
+	}
+
 	c.JSON(http.StatusOK, githubs)
 }
