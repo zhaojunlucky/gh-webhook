@@ -68,6 +68,8 @@ github.com/pelletier/go-toml/v2 v2.2.0 h1:QLgLl2yMN7N+ruc31VynXs1vhMZa7CeHHejIeB
 github.com/pelletier/go-toml/v2 v2.2.0/go.mod h1:1t835xjRzz80PqgE6HHgN2JOsmgYu/h4qDAS4n929Rs=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/rbicker/go-rsql v0.4.0 h1:G/rTk8dc/bnbciADC0BN3u7aBVBwhVSDFFPuB5refpc=
+github.com/rbicker/go-rsql v0.4.0/go.mod h1:u/sSqZGK6zjNsFoHNu3TqGpAbKErGddJXNA9srXT8sY=
 github.com/si3nloong/go-rsql v0.0.0-20210729161810-f9fceb702317 h1:uTWFOecv58k/GEi0GyNiCZk8X3Sgt0gyyB9LRG6HCTw=
 github.com/si3nloong/go-rsql v0.0.0-20210729161810-f9fceb702317/go.mod h1:JAjxUyftmLcJBd9pgl3AM/4yfGkjnE5x116/DitNYVA=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=

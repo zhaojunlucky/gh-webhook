@@ -6,6 +6,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/expr-lang/expr v1.16.3
 	github.com/gin-gonic/gin v1.9.1
+	github.com/rbicker/go-rsql v0.4.0
 	github.com/si3nloong/go-rsql v0.0.0-20210729161810-f9fceb702317
 	github.com/sirupsen/logrus v1.9.3
 	gopkg.in/yaml.v3 v3.0.1

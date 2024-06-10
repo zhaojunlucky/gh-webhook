@@ -5,7 +5,6 @@ import (
 	"gh-webhook/pkg/core"
 	"gh-webhook/pkg/model"
 	"github.com/gin-gonic/gin"
-	"github.com/si3nloong/go-rsql"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -157,21 +156,13 @@ func (h *GitHubAPIHandler) Delete(c *gin.Context) {
 func (h *GitHubAPIHandler) List(c *gin.Context) {
 	page := core.ParsePagination(c)
 	var query GitHubSearchDTO
-	q := rsql.MustNew(query)
-	rq, err := q.ParseQuery(c.Request.URL.RawQuery)
-	if err != nil {
-		log.Error(err)
-		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
-		return
-	}
-	h.db.Order(clause.OrderByColumn{
+
+	db := h.db.Order(clause.OrderByColumn{
 		Column:  clause.Column{},
 		Desc:    false,
 		Reorder: false,
-	}).Scopes(rq).Offset(page.OffSet).Limit(page.Limit).Find(&query.GitHubList)
+	}).Clauses().Limit(page.Size).Offset((page.Page - 1) * page.Size).Find(&githubs)
 
-	var githubs []model.GitHub
-	db := h.db.Find(&githubs)
 	if db.Error != nil {
 		log.Errorf("failed to find githubs: %v", db.Error)
 		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
