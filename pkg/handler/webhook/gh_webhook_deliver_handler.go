@@ -4,29 +4,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"gh-webhook/pkg/config"
+	"gh-webhook/pkg/core"
 	"gh-webhook/pkg/launcher"
 	"gh-webhook/pkg/model"
-	"github.com/PaesslerAG/jsonpath"
-	"github.com/expr-lang/expr"
-	"github.com/expr-lang/expr/vm"
+	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"regexp"
+	"net/http"
 	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
 )
 
-type Queue chan model.GHWebHookEvent
-
 type GHWebhookDeliverHandler struct {
-	queue        Queue
+	queue        model.Queue
 	wg           sync.WaitGroup
 	routineId    int32
 	db           *gorm.DB
 	compiledExpr sync.Map
-	config       config.Config
+	config       *config.Config
 }
 
 func (h *GHWebhookDeliverHandler) Start(processors int) {
@@ -61,6 +58,12 @@ func (h *GHWebhookDeliverHandler) Close() error {
 }
 
 func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent model.GHWebHookEvent) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Warningf("[go routine %d] event %d panic occurred: %v", routineId, ghEvent.ID, r)
+		}
+	}()
+
 	receiverLog := model.GHWebhookEventDelivers{
 		GHWebHookEventId: ghEvent.ID,
 		GHWebHookEvent:   ghEvent,
@@ -129,26 +132,8 @@ func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re model.GHWeb
 			continue
 		}
 
-		if len(sub.Actions) > 0 && !slices.Contains(sub.Actions, event.Action) {
-			log.Infof("[go routine %d] skip subscribe for action %s", routineId, event.Action)
-			continue
-		}
-
-		if err := h.matchOrgRepo(routineId, sub.OrgRepo, event); err != nil {
-			receiverDeliver.Delivered = true
-			receiverDeliver.Error = err.Error()
-			continue
-		}
-
-		if err := h.match(routineId, sub, event, payload); err != nil {
-			receiverDeliver.Delivered = true
-			receiverDeliver.Error = err.Error()
-			continue
-		}
-
-		if err := h.matchExpr(routineId, sub, event); err != nil {
-			receiverDeliver.Delivered = true
-			receiverDeliver.Error = err.Error()
+		if err := sub.Matches(payload, event); err != nil {
+			log.Warningf("[go routine %d] failed to match subscribe: %v", routineId, err)
 			continue
 		}
 
@@ -171,153 +156,21 @@ func (h *GHWebhookDeliverHandler) launchDelivery(routineId int32, re model.GHWeb
 	return launcherInst.Launch(routineId, h.config, re, event)
 }
 
-func (h *GHWebhookDeliverHandler) matchOrgRepo(routineId int32, orgRepo string, event model.GHWebHookEvent) error {
-	if len(orgRepo) > 0 {
-		matched, err := regexp.MatchString(orgRepo, event.OrgRepo)
-		if err != nil {
-			log.Errorf("failed to match org repo %s: %v", orgRepo, err)
-			return err
-		}
-		if !matched {
-			log.Infof("[go routine %d] skip subscribe for org repo %s", routineId, orgRepo)
-			return fmt.Errorf("[go routine %d] skip subscribe for org repo %s", routineId, orgRepo)
-		} else {
-			log.Infof("[go routine %d] matched org repo %s", routineId, orgRepo)
-			return nil
-		}
-	}
+func (h *GHWebhookDeliverHandler) Get(c *gin.Context) {
+
+	c.JSON(http.StatusOK, gin.H{
+		"queue": len(h.queue),
+	})
+}
+
+func (h *GHWebhookDeliverHandler) Register(c *core.GHPRContext) error {
+	h.queue = model.GetQueue()
+	h.wg = sync.WaitGroup{}
+	h.routineId = 0
+	h.db = c.Db
+	h.compiledExpr = sync.Map{}
+	h.config = c.Cfg
+	h.Start(4)
+	c.Gin.GET(fmt.Sprintf("%s/gh-webhook/handler/queue", c.Cfg.APIPrefix), h.Get)
 	return nil
-}
-
-func (h *GHWebhookDeliverHandler) matchExpr(routineId int32, sub model.GHWebHookSubscribe, event model.GHWebHookEvent) error {
-	if len(sub.Expr) > 0 {
-		prog, ok := h.compiledExpr.Load(sub.Expr)
-		var program *vm.Program
-		var err error
-		if !ok {
-			program, err = expr.Compile(sub.Expr, expr.AsBool())
-			if err != nil {
-				log.Errorf("failed to compile expr %s: %v", sub.Expr, err)
-				return err
-			}
-			h.compiledExpr.Store(sub.Expr, program)
-		} else {
-			program = prog.(*vm.Program)
-		}
-		env := map[string]interface{}{
-			"event": event,
-		}
-		output, err := expr.Run(program, env)
-		if err != nil {
-			log.Errorf("[go routine %d] failed to run expr %s: %v", routineId, sub.Expr, err)
-		}
-		if output.(bool) {
-			log.Infof("[go routine %d] matched expr %s", routineId, sub.Expr)
-		}
-	}
-	return nil
-}
-
-func (h *GHWebhookDeliverHandler) match(routineId int32, sub model.GHWebHookSubscribe, event model.GHWebHookEvent, payload map[string]interface{}) error {
-	switch sub.Event {
-	case model.EPullRequest:
-		return h.handlerPullRequest(routineId, sub, event, payload)
-	case model.EPush:
-		return h.handlerPush(routineId, sub, event, payload)
-	case model.EIssueComment:
-		return h.handlerIssueComment(routineId, sub, event, payload)
-	default:
-		return nil
-	}
-}
-
-func (h *GHWebhookDeliverHandler) handlerPullRequest(routineId int32, sub model.GHWebHookSubscribe, event model.GHWebHookEvent, payload map[string]interface{}) error {
-	if len(sub.PullRequest.AllowedBaseBranches) <= 0 && len(sub.PullRequest.DisallowedBaseBranches) <= 0 {
-		return nil
-	}
-
-	baseBranchObj, err := jsonpath.Get(fmt.Sprintf("%s.base.ref", model.EPullRequest), payload)
-	if err != nil {
-		return err
-	}
-
-	baseBranch := baseBranchObj.(string)
-
-	if len(sub.PullRequest.DisallowedBaseBranches) > 0 {
-		for _, disallowedBaseBranch := range sub.PullRequest.DisallowedBaseBranches {
-			matched, err := regexp.MatchString(disallowedBaseBranch, baseBranch)
-			if err != nil {
-				return err
-			}
-			if matched {
-				return fmt.Errorf("[go routine %d] disallowed base branch %s", routineId, baseBranch)
-			}
-			continue
-		}
-	}
-
-	if len(sub.PullRequest.AllowedBaseBranches) > 0 {
-		for _, allowedBaseBranch := range sub.PullRequest.AllowedBaseBranches {
-			matched, err := regexp.MatchString(allowedBaseBranch, baseBranch)
-			if err != nil {
-				return err
-			}
-			if matched {
-				return nil
-			}
-		}
-		return fmt.Errorf("[go routine %d] allowed base branch doesn't match", routineId)
-	}
-
-	return nil
-}
-
-func (h *GHWebhookDeliverHandler) handlerPush(routineId int32, sub model.GHWebHookSubscribe, event model.GHWebHookEvent, payload map[string]interface{}) error {
-	if len(sub.Push.AllowedPushRefs) <= 0 {
-		return nil
-	}
-
-	pushRefObj, err := jsonpath.Get("$.ref", payload)
-
-	if err != nil {
-		return err
-	}
-
-	pushRef := pushRefObj.(string)
-
-	for _, allowedPushRef := range sub.Push.AllowedPushRefs {
-		matched, err := regexp.MatchString(allowedPushRef, pushRef)
-		if err != nil {
-			return err
-		}
-		if matched {
-			return nil
-		}
-	}
-	return fmt.Errorf("[go routine %d] allowed push ref doesn't match", routineId)
-}
-
-func (h *GHWebhookDeliverHandler) handlerIssueComment(id int32, sub model.GHWebHookSubscribe, event model.GHWebHookEvent, payload map[string]interface{}) error {
-	if len(sub.IssueComment.AllowedComments) <= 0 {
-		return nil
-	}
-
-	commentObj, err := jsonpath.Get("$.comment.body", payload)
-
-	if err != nil {
-		return err
-	}
-
-	comment := commentObj.(string)
-
-	for _, allowedComment := range sub.IssueComment.AllowedComments {
-		matched, err := regexp.MatchString(allowedComment, comment)
-		if err != nil {
-			return err
-		}
-		if matched {
-			return nil
-		}
-	}
-	return fmt.Errorf("[go routine %d] allowed comment doesn't match", id)
 }

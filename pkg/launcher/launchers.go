@@ -8,8 +8,6 @@ func NewLauncher(receiverType string) (GHWebhookReceiverLauncher, error) {
 	switch receiverType {
 	case Http:
 		return &HttpAppLauncher{}, nil
-	case Local:
-		return &LocalAppLauncher{}, nil
 	case Jenkins:
 		return &JenkinsLauncher{}, nil
 	default:

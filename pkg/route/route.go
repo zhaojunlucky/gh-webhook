@@ -7,6 +7,7 @@ import (
 
 var routers = []core.RouterRegister{
 	&webhook.GHWebhookHandler{},
+	&webhook.GHWebhookDeliverHandler{},
 }
 
 func Init(ctx *core.GHPRContext) error {

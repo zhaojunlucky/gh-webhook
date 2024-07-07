@@ -15,3 +15,11 @@ type GHWebHookEvent struct {
 	GitHubId  uint   // github id
 	GitHub    GitHub // GitHub instance
 }
+
+type Queue chan GHWebHookEvent
+
+var queue = make(Queue)
+
+func GetQueue() Queue {
+	return queue
+}

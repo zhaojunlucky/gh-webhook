@@ -12,7 +12,7 @@ type JenkinsLauncher struct {
 	HttpAppLauncher
 }
 
-func (h *JenkinsLauncher) GetPayload(c config.Config, re model.GHWebHookReceiver, event model.GHWebHookEvent) ([]byte, error) {
+func (h *JenkinsLauncher) GetPayload(c *config.Config, re model.GHWebHookReceiver, event model.GHWebHookEvent) ([]byte, error) {
 	parameterObj, err := jsonpath.Get("$.parameter", re.ReceiverConfig.Config)
 
 	if err != nil {

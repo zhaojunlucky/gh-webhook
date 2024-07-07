@@ -11,14 +11,6 @@ type GHWebhookReceiverConfig struct {
 }
 
 /**
-For local receiver,
----
-{
-	app: curl
-	payloadArg: --event
-	args: ["-a", "a"]
-}
-
 For jenkins receiver,
 ---
 {

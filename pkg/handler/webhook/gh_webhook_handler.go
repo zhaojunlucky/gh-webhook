@@ -15,9 +15,10 @@ import "github.com/gin-gonic/gin"
 
 type GHWebhookHandler struct {
 	db    *gorm.DB
-	queue Queue
+	queue model.Queue
 }
 
+// Post receive webhook post event from github
 func (h *GHWebhookHandler) Post(c *gin.Context) {
 	if !h.validate(c) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "Failed to validate webhook"})
@@ -89,6 +90,7 @@ func (h *GHWebhookHandler) validate(c *gin.Context) bool {
 
 func (h *GHWebhookHandler) Register(c *core.GHPRContext) error {
 	h.db = c.Db
+	h.queue = model.GetQueue()
 	c.Gin.POST(fmt.Sprintf("%s/gh-webhook/", c.Cfg.APIPrefix), h.Post)
 	return nil
 }
