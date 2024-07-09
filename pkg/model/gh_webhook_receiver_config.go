@@ -6,8 +6,8 @@ const (
 )
 
 type GHWebhookReceiverConfig struct {
-	Type   string                 // local or http or
-	Config map[string]interface{} `gorm:"serializer:json"`
+	Type   string            // local or http or
+	Config map[string]string `gorm:"serializer:json"`
 }
 
 /**

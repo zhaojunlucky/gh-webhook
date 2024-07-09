@@ -21,5 +21,5 @@ var SupportedReceiverType = []string{Http, Jenkins}
 var SupportedAuthType = []string{NoAuth, BasicAuth, TokenAuth}
 
 type GHWebhookReceiverLauncher interface {
-	Launch(routineId int32, config *config.Config, re model.GHWebHookReceiver, event model.GHWebHookEvent) error
+	Launch(routineId int32, config *config.Config, re model.GHWebhookReceiver, event model.GHWebHookEvent) error
 }

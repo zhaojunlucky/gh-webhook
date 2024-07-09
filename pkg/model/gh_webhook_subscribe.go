@@ -5,6 +5,7 @@ import (
 	"github.com/PaesslerAG/jsonpath"
 	"github.com/expr-lang/expr"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -136,9 +137,12 @@ func (f *GHWebHookField) Matches(payload map[string]interface{}, ghEvent GHWebHo
 }
 
 type GHWebHookSubscribe struct {
-	Event string // mandatory
+	gorm.Model
+	GHWebHookReceiverID uint
+	GHWebHookReceiver   GHWebhookReceiver
+	Event               string // mandatory
 
-	Filters map[string]GHWebHookField
+	Filters map[string]GHWebHookField `gorm:"serializer:json"`
 }
 
 func (s *GHWebHookSubscribe) Matches(payload map[string]interface{}, ghEvent GHWebHookEvent) error {

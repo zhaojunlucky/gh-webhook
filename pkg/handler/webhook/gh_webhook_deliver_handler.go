@@ -84,7 +84,7 @@ func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent model.GHWebHoo
 		return
 	}
 
-	var receiver []model.GHWebHookReceiver
+	var receiver []model.GHWebhookReceiver
 	r := h.db.Where("github_id = ?", ghEvent.GitHubId).Find(&receiver)
 	if r.Error != nil {
 		log.Errorf("[go routine %d] failed to find receiver: %v", routineId, r.Error)
@@ -110,7 +110,7 @@ func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent model.GHWebHoo
 	}
 }
 
-func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re model.GHWebHookReceiver, event model.GHWebHookEvent, payload map[string]interface{}) model.GHWebHookEventReceiverDeliver {
+func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re model.GHWebhookReceiver, event model.GHWebHookEvent, payload map[string]interface{}) model.GHWebHookEventReceiverDeliver {
 	receiverDeliver := model.GHWebHookEventReceiverDeliver{
 		GHWebHookReceiverId: re.ID,
 	}
@@ -145,7 +145,7 @@ func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re model.GHWeb
 	return receiverDeliver
 }
 
-func (h *GHWebhookDeliverHandler) launchDelivery(routineId int32, re model.GHWebHookReceiver, event model.GHWebHookEvent) error {
+func (h *GHWebhookDeliverHandler) launchDelivery(routineId int32, re model.GHWebhookReceiver, event model.GHWebHookEvent) error {
 
 	launcherInst, err := launcher.NewLauncher(re.ReceiverConfig.Type)
 

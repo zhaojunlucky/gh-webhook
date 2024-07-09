@@ -13,6 +13,7 @@ import (
 )
 import "github.com/gin-gonic/gin"
 
+// path: gh-webhook
 type GHWebhookHandler struct {
 	db    *gorm.DB
 	queue model.Queue
@@ -91,6 +92,6 @@ func (h *GHWebhookHandler) validate(c *gin.Context) bool {
 func (h *GHWebhookHandler) Register(c *core.GHPRContext) error {
 	h.db = c.Db
 	h.queue = model.GetQueue()
-	c.Gin.POST(fmt.Sprintf("%s/gh-webhook/", c.Cfg.APIPrefix), h.Post)
+	c.Gin.POST(fmt.Sprintf("%s/gh-webhook", c.Cfg.APIPrefix), h.Post)
 	return nil
 }

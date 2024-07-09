@@ -15,4 +15,5 @@ type GHWebhookEventDelivers struct {
 	GHWebHookReceivers []GHWebHookEventReceiverDeliver `gorm:"serializer:json"`
 	Error              string
 	Delivered          bool
+	Feedback           string // this can be set by receiver
 }

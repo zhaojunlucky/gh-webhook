@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"gh-webhook/pkg/core"
 	"gh-webhook/pkg/model"
 	"github.com/dranikpg/dto-mapper"
@@ -33,12 +34,18 @@ type GitHubSearchDTO struct {
 	Name      string    `json:"name" rsql:"name,filter,sort"`
 }
 
+// GitHubAPIHandler path: github
 type GitHubAPIHandler struct {
 	db *gorm.DB
 }
 
 func (h *GitHubAPIHandler) Register(c *core.GHPRContext) error {
 	h.db = c.Db
+	c.Gin.POST(fmt.Sprintf("%s/github", c.Cfg.APIPrefix), h.Post)
+	c.Gin.PATCH(fmt.Sprintf("%s/github/:id", c.Cfg.APIPrefix), h.Update)
+	c.Gin.GET(fmt.Sprintf("%s/github", c.Cfg.APIPrefix), h.List)
+	c.Gin.GET(fmt.Sprintf("%s/github/:id", c.Cfg.APIPrefix), h.Get)
+	c.Gin.DELETE(fmt.Sprintf("%s/github/:id", c.Cfg.APIPrefix), h.Delete)
 	return nil
 }
 
@@ -80,7 +87,7 @@ func (h *GitHubAPIHandler) Get(c *gin.Context) {
 			c.JSON(http.StatusNotFound, model.NewErrorMsgDTO(http.StatusText(http.StatusNotFound)))
 			return
 		}
-		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(err))
+		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
 		return
 	}
 	mapper := dto.Mapper{}

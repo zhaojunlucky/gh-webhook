@@ -16,7 +16,7 @@ import (
 type HttpAppLauncher struct {
 }
 
-func (h *HttpAppLauncher) Launch(routineId int32, config *config.Config, re model.GHWebHookReceiver, event model.GHWebHookEvent) error {
+func (h *HttpAppLauncher) Launch(routineId int32, config *config.Config, re model.GHWebhookReceiver, event model.GHWebHookEvent) error {
 
 	str, err := h.GetPayload(config, re, event)
 	if err != nil {
@@ -100,7 +100,7 @@ func (h *HttpAppLauncher) Launch(routineId int32, config *config.Config, re mode
 	return nil
 }
 
-func (h *HttpAppLauncher) GetPayload(c *config.Config, re model.GHWebHookReceiver, event model.GHWebHookEvent) ([]byte, error) {
+func (h *HttpAppLauncher) GetPayload(c *config.Config, re model.GHWebhookReceiver, event model.GHWebHookEvent) ([]byte, error) {
 	payload := map[string]interface{}{
 		"url":   fmt.Sprintf("%s/event/%d", c.APIUrl, event.ID),
 		"event": event,
