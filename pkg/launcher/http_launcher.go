@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"gh-webhook/pkg/config"
 	"gh-webhook/pkg/model"
-	"github.com/PaesslerAG/jsonpath"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -23,25 +22,12 @@ func (h *HttpAppLauncher) Launch(routineId int32, config *config.Config, re mode
 		return err
 	}
 
-	receiverCfg := re.ReceiverConfig.Config
-
-	urlObj, err := jsonpath.Get("$.url", receiverCfg)
-	if err != nil {
-		return err
-	}
-	url := urlObj.(string)
+	url := re.ReceiverConfig.URL
 	if len(url) == 0 {
 		return fmt.Errorf("invalid url")
 	}
 
-	authObj, err := jsonpath.Get("$.auth", receiverCfg)
-	auth := "none"
-	if err != nil {
-		log.Warnf("failed to get auth: %v", err)
-	} else {
-		auth = authObj.(string)
-	}
-
+	auth := re.ReceiverConfig.Auth
 	if !slices.Contains(SupportedAuthType, auth) {
 		return fmt.Errorf("unsupported auth type %s", auth)
 	}
@@ -53,18 +39,9 @@ func (h *HttpAppLauncher) Launch(routineId int32, config *config.Config, re mode
 	req.Header.Set("Content-Type", "application/json")
 
 	if auth == "basic" || auth == "token" {
-		userObj, err := jsonpath.Get("$.username", receiverCfg)
-		if err != nil {
-			return err
-		}
-		username := userObj.(string)
+		username := re.ReceiverConfig.Username
 
-		passwordObj, err := jsonpath.Get("$.password", receiverCfg)
-
-		if err != nil {
-			return err
-		}
-		password := passwordObj.(string)
+		password := re.ReceiverConfig.Password
 
 		if len(username) == 0 || len(password) == 0 {
 			return fmt.Errorf("username/token header or password/token value is empty")

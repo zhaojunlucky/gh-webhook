@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"gh-webhook/pkg/config"
 	"gh-webhook/pkg/model"
-	"github.com/PaesslerAG/jsonpath"
 )
 
 type JenkinsLauncher struct {
@@ -13,13 +12,8 @@ type JenkinsLauncher struct {
 }
 
 func (h *JenkinsLauncher) GetPayload(c *config.Config, re model.GHWebhookReceiver, event model.GHWebHookEvent) ([]byte, error) {
-	parameterObj, err := jsonpath.Get("$.parameter", re.ReceiverConfig.Config)
 
-	if err != nil {
-		return nil, err
-	}
-
-	parameter := parameterObj.(string)
+	parameter := re.ReceiverConfig.Parameter
 	if len(parameter) == 0 {
 		return nil, fmt.Errorf("invalid parameter")
 	}

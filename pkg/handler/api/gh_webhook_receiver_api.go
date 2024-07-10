@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"gh-webhook/pkg/core"
 	"gh-webhook/pkg/model"
+	"github.com/dranikpg/dto-mapper"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
+	"time"
 )
 
 // GHWebhookReceiverAPIHandler path: gh-webhook-receiver
@@ -17,14 +19,36 @@ type GHWebhookReceiverAPIHandler struct {
 }
 
 type GHWebhookReceiverConfigCreateDTO struct {
-	Type   string            `json:"Type" binding:"required"`
-	Config map[string]string `json:"config" binding:"required"`
+	Type      string `json:"type" binding:"required"`
+	URL       string `json:"url" binding:"required"`
+	Auth      string `json:"auth" binding:"required"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	Parameter string `json:"parameter" binding:"required"` // optional
 }
 
 type GHWebhookReceiverCreateDTO struct {
 	Name           string                           `json:"name" binding:"required"`
 	GitHubId       uint                             `json:"githubId" binding:"required"`
 	ReceiverConfig GHWebhookReceiverConfigCreateDTO `json:"receiverConfig" binding:"required"`
+}
+
+type GHWebhookReceiverSearchDTO struct {
+	ID             uint
+	Name           string
+	GitHub         GitHubSearchDTO
+	ReceiverConfig GHWebhookReceiverConfigSearchDTO `json:"config"`
+	CreatedAt      time.Time                        `json:"createdAt" `
+	UpdatedAt      time.Time                        `json:"updatedAt" `
+}
+
+type GHWebhookReceiverConfigSearchDTO struct {
+	Type      string `json:"type" binding:"required"`
+	URL       string `json:"url" binding:"required"`
+	Auth      string `json:"auth" binding:"required"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	Parameter string `json:"parameter" binding:"required"` // optional
 }
 
 func (h *GHWebhookReceiverAPIHandler) Register(c *core.GHPRContext) error {
@@ -47,6 +71,7 @@ func (h *GHWebhookReceiverAPIHandler) Post(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
 		return
 	}
+
 	var github model.GitHub
 	dbErr := h.db.Find(&github, "id = ?", createDTO.GitHubId)
 	if dbErr.Error != nil {
@@ -61,12 +86,23 @@ func (h *GHWebhookReceiverAPIHandler) Post(c *gin.Context) {
 	receiver := model.GHWebhookReceiver{
 		Name:     createDTO.Name,
 		GitHubId: createDTO.GitHubId,
+		GitHub:   github,
 		ReceiverConfig: model.GHWebhookReceiverConfig{
-			Type:   createDTO.ReceiverConfig.Type,
-			Config: createDTO.ReceiverConfig.Config,
-		},
+			Type:      createDTO.ReceiverConfig.Type,
+			URL:       createDTO.ReceiverConfig.URL,
+			Auth:      createDTO.ReceiverConfig.Auth,
+			Username:  createDTO.ReceiverConfig.Username,
+			Password:  createDTO.ReceiverConfig.Password,
+			Parameter: createDTO.ReceiverConfig.Parameter},
 		Subscribes: nil,
 	}
+
+	if err := receiver.ReceiverConfig.IsValid(); err != nil {
+		log.Errorf("invalid request: %v", err)
+		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
+		return
+	}
+
 	db := h.db.Save(&receiver)
 	if db.Error != nil {
 		log.Errorf("failed to save webhook receiver: %v", db.Error)
@@ -74,4 +110,70 @@ func (h *GHWebhookReceiverAPIHandler) Post(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, receiver)
+}
+
+// Get get webhook receiver
+func (h *GHWebhookReceiverAPIHandler) Get(c *gin.Context) {
+	id, err := core.UIntParam(c, "id")
+	if err != nil {
+		log.Errorf("failed to convert id: %v", err)
+		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
+		return
+	}
+	receiver := model.GHWebhookReceiver{}
+	db := h.db.First(&receiver, "id = ?", id)
+	if db.Error != nil {
+		log.Errorf("failed to find webhook receiver: %v", db.Error)
+		if errors.Is(db.Error, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, model.NewErrorMsgDTO(http.StatusText(http.StatusNotFound)))
+			return
+		}
+		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
+		return
+	}
+	mapper := dto.Mapper{}
+	to := GHWebhookReceiverSearchDTO{}
+	err = mapper.Map(&to, receiver)
+	c.JSON(http.StatusOK, receiver)
+}
+
+// Delete delete webhook receiver
+func (h *GHWebhookReceiverAPIHandler) Delete(c *gin.Context) {
+	id, err := core.UIntParam(c, "id")
+	if err != nil {
+		log.Errorf("failed to convert id: %v", err)
+		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
+		return
+	}
+	db := h.db.Delete(&model.GHWebhookReceiver{}, "id = ?", id)
+	if db.Error != nil {
+		log.Errorf("failed to delete webhook receiver: %v", db.Error)
+		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
+		return
+	}
+	if db.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, model.NewErrorMsgDTO(http.StatusText(http.StatusNotFound)))
+		return
+	}
+	c.JSON(http.StatusNoContent, nil)
+}
+
+// List list webhook receivers
+func (h *GHWebhookReceiverAPIHandler) List(c *gin.Context) {
+	var receivers []model.GHWebhookReceiver
+	db := h.db.Find(&receivers)
+	if db.Error != nil {
+		log.Errorf("failed to list webhook receivers: %v", db.Error)
+		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
+		return
+	}
+	mapper := dto.Mapper{}
+	var dtos []GHWebhookReceiverSearchDTO
+	err := mapper.Map(&dtos, receivers)
+	if err != nil {
+		log.Errorf("failed to map webhook receivers: %v", err)
+		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(err))
+		return
+	}
+	c.JSON(http.StatusOK, dtos)
 }
