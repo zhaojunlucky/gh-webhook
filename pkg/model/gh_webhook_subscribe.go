@@ -136,6 +136,14 @@ func (f *GHWebHookField) Matches(payload map[string]interface{}, ghEvent GHWebHo
 	return nil
 }
 
+func (f *GHWebHookField) IsValid() error {
+	if len(f.PositiveMatches) == 0 && len(f.NegativeMatches) == 0 && len(f.Child) == 0 && len(f.Expr) == 0 {
+		return fmt.Errorf("no filter")
+	}
+	return nil
+
+}
+
 type GHWebHookSubscribe struct {
 	gorm.Model
 	GHWebHookReceiverID uint
@@ -162,6 +170,19 @@ func (s *GHWebHookSubscribe) Matches(payload map[string]interface{}, ghEvent GHW
 		}
 	}
 	return fmt.Errorf("event[%d] %s doesn't match %s", ghEvent.ID, ghEvent.Event, s.Event)
+}
+
+func (s *GHWebHookSubscribe) IsValid() error {
+	if len(s.Event) == 0 {
+		return fmt.Errorf("event is required")
+	}
+
+	for k, v := range s.Filters {
+		if err := v.IsValid(); err != nil {
+			return fmt.Errorf("invalid filter %s: %v", k, err)
+		}
+	}
+	return nil
 }
 
 /*

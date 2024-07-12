@@ -34,8 +34,8 @@ type GHWebhookReceiverCreateDTO struct {
 }
 
 type GHWebhookReceiverSearchDTO struct {
-	ID             uint
-	Name           string
+	ID             uint   `json:"id" rsql:"id,filter,sort"`
+	Name           string `json:"name" rsql:"name,filter,sort"`
 	GitHub         GitHubSearchDTO
 	ReceiverConfig GHWebhookReceiverConfigSearchDTO `json:"config"`
 	CreatedAt      time.Time                        `json:"createdAt" `
@@ -43,12 +43,12 @@ type GHWebhookReceiverSearchDTO struct {
 }
 
 type GHWebhookReceiverConfigSearchDTO struct {
-	Type      string `json:"type" binding:"required"`
-	URL       string `json:"url" binding:"required"`
-	Auth      string `json:"auth" binding:"required"`
+	Type      string `json:"type"`
+	URL       string `json:"url" `
+	Auth      string `json:"auth" `
 	Username  string `json:"username"`
 	Password  string `json:"password"`
-	Parameter string `json:"parameter" binding:"required"` // optional
+	Parameter string `json:"parameter" ` // optional
 }
 
 func (h *GHWebhookReceiverAPIHandler) Register(c *core.GHPRContext) error {
@@ -109,7 +109,7 @@ func (h *GHWebhookReceiverAPIHandler) Post(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
 		return
 	}
-	c.JSON(http.StatusCreated, receiver)
+	c.JSON(http.StatusCreated, model.NewIDResponse(receiver.ID))
 }
 
 // Get get webhook receiver
@@ -160,20 +160,32 @@ func (h *GHWebhookReceiverAPIHandler) Delete(c *gin.Context) {
 
 // List list webhook receivers
 func (h *GHWebhookReceiverAPIHandler) List(c *gin.Context) {
-	var receivers []model.GHWebhookReceiver
-	db := h.db.Find(&receivers)
+	page := core.ParsePagination(c)
+
+	rsqlQuery := core.NewRSQLHelper()
+	err := rsqlQuery.ParseFilter(GHWebhookReceiverSearchDTO{}, c)
+	if err != nil {
+		log.Errorf("failed to parse filter: %v", err)
+		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
+		return
+	}
+	var subs []model.GHWebhookReceiver
+	db := h.db.Order(rsqlQuery.SortSQL).Where(rsqlQuery.FilterSQL, rsqlQuery.Arguments...).
+		Limit(page.Size).Offset((page.Page - 1) * page.Size).Find(&subs)
+
 	if db.Error != nil {
-		log.Errorf("failed to list webhook receivers: %v", db.Error)
+		log.Errorf("failed to find receivers: %v", db.Error)
 		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
 		return
 	}
+	var receiverDTOs []GHWebhookReceiverSearchDTO
 	mapper := dto.Mapper{}
-	var dtos []GHWebhookReceiverSearchDTO
-	err := mapper.Map(&dtos, receivers)
+	err = mapper.Map(&receiverDTOs, subs)
 	if err != nil {
-		log.Errorf("failed to map webhook receivers: %v", err)
-		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(err))
+		log.Errorf("failed to find githubs: %v", db.Error)
+		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
 		return
 	}
-	c.JSON(http.StatusOK, dtos)
+
+	c.JSON(http.StatusOK, model.NewListResponse(receiverDTOs))
 }

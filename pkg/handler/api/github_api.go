@@ -197,5 +197,5 @@ func (h *GitHubAPIHandler) List(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, githubs)
+	c.JSON(http.StatusOK, model.NewListResponse(githubDTOs))
 }
