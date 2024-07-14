@@ -34,7 +34,7 @@ func (h *GHWebhookHandler) Post(c *gin.Context) {
 
 	// add validate source
 
-	ghHookEvent := model.GHWebHookEvent{
+	ghHookEvent := model.GHWebhookEvent{
 		GitHub:   github,
 		GitHubId: github.ID,
 	}
@@ -81,7 +81,7 @@ func (h *GHWebhookHandler) Post(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }
 
-func (h *GHWebhookHandler) push(event model.GHWebHookEvent) {
+func (h *GHWebhookHandler) push(event model.GHWebhookEvent) {
 	h.queue <- event
 }
 

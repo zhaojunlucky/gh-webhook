@@ -15,9 +15,10 @@ import (
 type HttpAppLauncher struct {
 }
 
-func (h *HttpAppLauncher) Launch(routineId int32, config *config.Config, re model.GHWebhookReceiver, event model.GHWebHookEvent) error {
+func (h *HttpAppLauncher) Launch(routineId int32, config *config.Config, re model.GHWebhookReceiver, event model.GHWebhookEvent,
+	receiverDeliver model.GHWebhookEventReceiverDeliver) error {
 
-	str, err := h.GetPayload(config, re, event)
+	str, err := h.GetPayload(config, re, event, receiverDeliver)
 	if err != nil {
 		return err
 	}
@@ -77,10 +78,11 @@ func (h *HttpAppLauncher) Launch(routineId int32, config *config.Config, re mode
 	return nil
 }
 
-func (h *HttpAppLauncher) GetPayload(c *config.Config, re model.GHWebhookReceiver, event model.GHWebHookEvent) ([]byte, error) {
+func (h *HttpAppLauncher) GetPayload(c *config.Config, re model.GHWebhookReceiver, event model.GHWebhookEvent, receiverDeliver model.GHWebhookEventReceiverDeliver) ([]byte, error) {
 	payload := map[string]interface{}{
-		"url":   fmt.Sprintf("%s/event/%d", c.APIUrl, event.ID),
-		"event": event,
+		"url":                fmt.Sprintf("%s/gh-webhook-event/%d", c.APIUrl, event.ID),
+		"event":              event,
+		"eventDeliverAckUrl": fmt.Sprintf("%s/gh-webhook-receiver-deliver/%d/ack", c.APIUrl, receiverDeliver.ID),
 	}
 
 	return json.Marshal(payload)

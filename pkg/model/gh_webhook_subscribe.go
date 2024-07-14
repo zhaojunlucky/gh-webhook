@@ -11,19 +11,19 @@ import (
 	"strconv"
 )
 
-type GHWebHookField struct {
+type GHWebhookField struct {
 	PositiveMatches []string // regex, null or empty will map all
 	NegativeMatches []string // regex, null or empty will skip
-	Child           map[string]GHWebHookField
+	Child           map[string]GHWebhookField
 	Expr            string // https://expr-lang.org/docs/configuration, empty will match all
 }
 
-type GHWebHookFieldVal struct {
+type GHWebhookFieldVal struct {
 	Value interface{}
 	Type  reflect.Type
 }
 
-func (v *GHWebHookFieldVal) GetAsString() string {
+func (v *GHWebhookFieldVal) GetAsString() string {
 	switch v.Type.Kind() {
 	case reflect.Int64:
 		return fmt.Sprintf("%d", v.Value)
@@ -38,35 +38,35 @@ func (v *GHWebHookFieldVal) GetAsString() string {
 	}
 }
 
-func (v *GHWebHookFieldVal) GetAsMap() map[string]interface{} {
+func (v *GHWebhookFieldVal) GetAsMap() map[string]interface{} {
 	return v.Value.(map[string]interface{})
 }
 
-func (v *GHWebHookFieldVal) IsMap() bool {
+func (v *GHWebhookFieldVal) IsMap() bool {
 	return v.Type.Kind() == reflect.Map && v.Type.Key().Kind() == reflect.String
 }
 
-func (v *GHWebHookFieldVal) IsString() bool {
+func (v *GHWebhookFieldVal) IsString() bool {
 	return v.Type.Kind() == reflect.String
 }
 
-func (v *GHWebHookFieldVal) IsNumeric() bool {
+func (v *GHWebhookFieldVal) IsNumeric() bool {
 	return v.Type.Kind() == reflect.Float64 ||
 		v.Type.Kind() == reflect.Int64 || v.Type.Kind() == reflect.Uint64
 }
 
-func (v *GHWebHookFieldVal) IsBool() bool {
+func (v *GHWebhookFieldVal) IsBool() bool {
 	return v.Type.Kind() == reflect.Bool
 }
 
-func (f *GHWebHookField) Matches(payload map[string]interface{}, ghEvent GHWebHookEvent, key string) error {
+func (f *GHWebhookField) Matches(payload map[string]interface{}, ghEvent GHWebhookEvent, key string) error {
 	curObj, err := jsonpath.Get(key, payload)
 
 	if err != nil {
 		return err
 	}
 
-	fieldVal := GHWebHookFieldVal{Value: curObj, Type: reflect.TypeOf(curObj)}
+	fieldVal := GHWebhookFieldVal{Value: curObj, Type: reflect.TypeOf(curObj)}
 
 	if len(f.NegativeMatches) >= 0 || len(f.PositiveMatches) >= 0 {
 		if !fieldVal.IsNumeric() && !fieldVal.IsString() && !fieldVal.IsBool() {
@@ -136,7 +136,7 @@ func (f *GHWebHookField) Matches(payload map[string]interface{}, ghEvent GHWebHo
 	return nil
 }
 
-func (f *GHWebHookField) IsValid() error {
+func (f *GHWebhookField) IsValid() error {
 	if len(f.PositiveMatches) == 0 && len(f.NegativeMatches) == 0 && len(f.Child) == 0 && len(f.Expr) == 0 {
 		return fmt.Errorf("no filter")
 	}
@@ -147,13 +147,13 @@ func (f *GHWebHookField) IsValid() error {
 type GHWebHookSubscribe struct {
 	gorm.Model
 	GHWebHookReceiverID uint
-	GHWebHookReceiver   GHWebhookReceiver
-	Event               string // mandatory
+	//GHWebHookReceiver   GHWebhookReceiver
+	Event string // mandatory
 
-	Filters map[string]GHWebHookField `gorm:"serializer:json"`
+	Filters map[string]GHWebhookField `gorm:"serializer:json"`
 }
 
-func (s *GHWebHookSubscribe) Matches(payload map[string]interface{}, ghEvent GHWebHookEvent) error {
+func (s *GHWebHookSubscribe) Matches(payload map[string]interface{}, ghEvent GHWebhookEvent) error {
 	if s.Event != ghEvent.Event {
 		log.Infof("event[%d] %s doesn't match %s", ghEvent.ID, ghEvent.Event, s.Event)
 		return fmt.Errorf("event[%d] %s doesn't match %s", ghEvent.ID, ghEvent.Event, s.Event)

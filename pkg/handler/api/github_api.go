@@ -94,11 +94,10 @@ func (h *GitHubAPIHandler) Get(c *gin.Context) {
 	to := GitHubSearchDTO{}
 	err = mapper.Map(&to, github)
 	if err != nil {
-		log.Errorf("failed to convert id: %v", err)
-		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(err))
+		log.Errorf("failed to map: %v", err)
+		c.JSON(http.StatusInternalServerError, model.NewErrorMsgDTOFromErr(err))
 		return
 	}
-
 	c.JSON(http.StatusOK, to)
 }
 
@@ -192,8 +191,8 @@ func (h *GitHubAPIHandler) List(c *gin.Context) {
 	mapper := dto.Mapper{}
 	err = mapper.Map(&githubDTOs, githubs)
 	if err != nil {
-		log.Errorf("failed to find githubs: %v", db.Error)
-		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
+		log.Errorf("failed to map: %v", err)
+		c.JSON(http.StatusInternalServerError, model.NewErrorMsgDTOFromErr(err))
 		return
 	}
 

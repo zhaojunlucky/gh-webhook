@@ -97,7 +97,7 @@ func (h *GHWebhookSubscribeAPIHandler) Post(c *gin.Context) {
 		return
 	}
 	mapper := dto.Mapper{}
-	var filters map[string]model.GHWebHookField
+	var filters map[string]model.GHWebhookField
 	err = mapper.Map(&filters, createDto.Filters)
 	if err != nil {
 		log.Errorf("failed to bind json: %v", err)
@@ -169,8 +169,8 @@ func (h *GHWebhookSubscribeAPIHandler) Get(c *gin.Context) {
 	to := GHWebhookSubscribeSearchDTO{}
 	err = mapper.Map(&to, sub)
 	if err != nil {
-		log.Errorf("failed to convert id: %v", err)
-		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(err))
+		log.Errorf("failed to map: %v", err)
+		c.JSON(http.StatusInternalServerError, model.NewErrorMsgDTOFromErr(err))
 		return
 	}
 	c.JSON(http.StatusOK, to)
@@ -228,7 +228,7 @@ func (h *GHWebhookSubscribeAPIHandler) Update(c *gin.Context) {
 
 	sub.Event = updateDto.Event
 	mapper := dto.Mapper{}
-	var filters map[string]model.GHWebHookField
+	var filters map[string]model.GHWebhookField
 	err = mapper.Map(&filters, updateDto.Filters)
 	if err != nil {
 		log.Errorf("failed to bind json: %v", err)
@@ -321,8 +321,8 @@ func (h *GHWebhookSubscribeAPIHandler) List(c *gin.Context) {
 	mapper := dto.Mapper{}
 	err = mapper.Map(&subDTOs, subs)
 	if err != nil {
-		log.Errorf("failed to find githubs: %v", db.Error)
-		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
+		log.Errorf("failed to map: %v", err)
+		c.JSON(http.StatusInternalServerError, model.NewErrorMsgDTOFromErr(err))
 		return
 	}
 

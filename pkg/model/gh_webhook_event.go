@@ -2,8 +2,8 @@ package model
 
 import "gorm.io/gorm"
 
-// GHWebHookEvent store webhook payload
-type GHWebHookEvent struct {
+// GHWebhookEvent store webhook payload
+type GHWebhookEvent struct {
 	gorm.Model
 	HookMeta  map[string]string `gorm:"serializer:json"` // Hook headers from GitHub
 	Payload   string            // raw payload from GitHub
@@ -16,7 +16,7 @@ type GHWebHookEvent struct {
 	GitHub    GitHub // GitHub instance
 }
 
-type Queue chan GHWebHookEvent
+type Queue chan GHWebhookEvent
 
 var queue = make(Queue)
 

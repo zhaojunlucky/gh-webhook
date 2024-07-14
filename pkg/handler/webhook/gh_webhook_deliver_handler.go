@@ -26,6 +26,11 @@ type GHWebhookDeliverHandler struct {
 	config       *config.Config
 }
 
+type GHEvent struct {
+	Event    *model.GHWebhookEvent
+	Receiver *model.GHWebhookReceiver
+}
+
 func (h *GHWebhookDeliverHandler) Start(processors int) {
 	h.wg.Add(processors)
 
@@ -57,25 +62,30 @@ func (h *GHWebhookDeliverHandler) Close() error {
 	return nil
 }
 
-func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent model.GHWebHookEvent) {
+func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent model.GHWebhookEvent) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Warningf("[go routine %d] event %d panic occurred: %v", routineId, ghEvent.ID, r)
 		}
 	}()
 
-	receiverLog := model.GHWebhookEventDelivers{
-		GHWebHookEventId: ghEvent.ID,
-		GHWebHookEvent:   ghEvent,
+	receiverLog := model.GHWebhookEventDeliver{
+		GHWebhookEventId: ghEvent.ID,
+		GHWebhookEvent:   ghEvent,
 	}
 
 	defer func() {
-		r := h.db.Create(&receiverLog)
+		r := h.db.Save(&receiverLog)
 		if r.Error != nil {
 			log.Errorf("[go routine %d] failed to create receiver log: %v", routineId, r.Error)
 		}
 	}()
 
+	if r := h.db.Save(&receiverLog); r.Error != nil {
+		log.Errorf("[go routine %d] failed to create receiver log: %v", routineId, r.Error)
+	}
+
+	log.Infof("[go routine %d] saved receiver log %d", routineId, receiverLog.ID)
 	var payload map[string]interface{}
 	if err := json.Unmarshal([]byte(ghEvent.Payload), &payload); err != nil {
 		log.Errorf("[go routine %d] failed to parse payload as json: %v", routineId, err)
@@ -106,24 +116,38 @@ func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent model.GHWebHoo
 	log.Infof("[go routine %d] found receivers %s", routineId, strings.Join(ids, ", "))
 
 	for _, re := range receiver {
-		receiverLog.GHWebHookReceivers = append(receiverLog.GHWebHookReceivers, h.handleReceiver(routineId, re, ghEvent, payload))
+		h.handleReceiver(routineId, re, ghEvent, payload, receiverLog)
 	}
 }
 
-func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re model.GHWebhookReceiver, event model.GHWebHookEvent, payload map[string]interface{}) model.GHWebHookEventReceiverDeliver {
-	receiverDeliver := model.GHWebHookEventReceiverDeliver{
-		GHWebHookReceiverId: re.ID,
+func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re model.GHWebhookReceiver, event model.GHWebhookEvent,
+	payload map[string]interface{}, receiverLog model.GHWebhookEventDeliver) {
+	receiverDeliver := model.GHWebhookEventReceiverDeliver{
+		GHWebhookReceiverId:     re.ID,
+		Delivered:               false,
+		GHWebhookEventDeliver:   receiverLog,
+		GHWebhookEventDeliverID: receiverLog.ID,
 	}
-	receiverDeliver.Delivered = false
+
+	defer func() {
+		r := h.db.Save(&receiverDeliver)
+		if r.Error != nil {
+			log.Errorf("[go routine %d] failed to create receiver deliver log: %v", routineId, r.Error)
+		}
+	}()
+
+	if r := h.db.Save(&receiverDeliver); r.Error != nil {
+		log.Errorf("[go routine %d] failed to create receiver deliver log: %v", routineId, r.Error)
+	}
 
 	if len(re.Subscribes) == 0 {
 		receiverDeliver.Error = fmt.Sprintf("[go routine %d] no subscribe found for receiver %d", routineId, re.ID)
 		log.Warning(receiverDeliver.Error)
-		return receiverDeliver
+		return
 	} else if !slices.Contains(launcher.SupportedReceiverType, re.ReceiverConfig.Type) {
 		receiverDeliver.Error = fmt.Sprintf("[go routine %d] unsupported receiver type %s", routineId, re.ReceiverConfig.Type)
 		log.Warning(receiverDeliver.Error)
-		return receiverDeliver
+		return
 	}
 
 	for _, sub := range re.Subscribes {
@@ -138,14 +162,14 @@ func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re model.GHWeb
 		}
 
 		receiverDeliver.Delivered = true
-		receiverDeliver.Error = h.launchDelivery(routineId, re, event).Error()
+		receiverDeliver.Error = h.launchDelivery(routineId, re, event, receiverDeliver).Error()
 		break
 	}
 
-	return receiverDeliver
 }
 
-func (h *GHWebhookDeliverHandler) launchDelivery(routineId int32, re model.GHWebhookReceiver, event model.GHWebHookEvent) error {
+func (h *GHWebhookDeliverHandler) launchDelivery(routineId int32, re model.GHWebhookReceiver, event model.GHWebhookEvent,
+	receiverDeliver model.GHWebhookEventReceiverDeliver) error {
 
 	launcherInst, err := launcher.NewLauncher(re.ReceiverConfig.Type)
 
@@ -153,7 +177,7 @@ func (h *GHWebhookDeliverHandler) launchDelivery(routineId int32, re model.GHWeb
 		return err
 	}
 
-	return launcherInst.Launch(routineId, h.config, re, event)
+	return launcherInst.Launch(routineId, h.config, re, event, receiverDeliver)
 }
 
 func (h *GHWebhookDeliverHandler) Get(c *gin.Context) {
@@ -171,6 +195,6 @@ func (h *GHWebhookDeliverHandler) Register(c *core.GHPRContext) error {
 	h.compiledExpr = sync.Map{}
 	h.config = c.Cfg
 	h.Start(4)
-	c.Gin.GET(fmt.Sprintf("%s/gh-webhook/handler/queue", c.Cfg.APIPrefix), h.Get)
+	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-handler/queue", c.Cfg.APIPrefix), h.Get)
 	return nil
 }
