@@ -33,6 +33,20 @@ type GHWebhookReceiverCreateDTO struct {
 	ReceiverConfig GHWebhookReceiverConfigCreateDTO `json:"receiverConfig" binding:"required"`
 }
 
+type GHWebhookReceiverConfigUpdateDTO struct {
+	Type      *string `json:"type"`
+	URL       *string `json:"url"`
+	Auth      *string `json:"auth"`
+	Username  *string `json:"username"`
+	Password  *string `json:"password"`
+	Parameter *string `json:"parameter"` // optional
+}
+
+type GHWebhookReceiverUpdateDTO struct {
+	Name           *string                          `json:"name"`
+	ReceiverConfig GHWebhookReceiverConfigUpdateDTO `json:"receiverConfig"`
+}
+
 type GHWebhookReceiverSearchDTO struct {
 	ID             uint   `json:"id" rsql:"id,filter,sort"`
 	Name           string `json:"name" rsql:"name,filter,sort"`
@@ -54,11 +68,9 @@ type GHWebhookReceiverConfigSearchDTO struct {
 func (h *GHWebhookReceiverAPIHandler) Register(c *core.GHPRContext) error {
 	h.db = c.Db
 	c.Gin.POST(fmt.Sprintf("%s/gh-webhook-receiver/", c.Cfg.APIPrefix), h.Post)
-	c.Gin.PATCH(fmt.Sprintf("%s/gh-webhook-receiver/", c.Cfg.APIPrefix), h.Post)
-	c.Gin.DELETE(fmt.Sprintf("%s/gh-webhook-receiver/", c.Cfg.APIPrefix), h.Post)
-	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver/", c.Cfg.APIPrefix), h.Post)
-	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver/", c.Cfg.APIPrefix), h.Post)
-	c.Gin.DELETE(fmt.Sprintf("%s/gh-webhook-receiver/", c.Cfg.APIPrefix), h.Post)
+	c.Gin.PATCH(fmt.Sprintf("%s/gh-webhook-receiver/:id", c.Cfg.APIPrefix), h.Update)
+	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver/:id", c.Cfg.APIPrefix), h.Delete)
+	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver", c.Cfg.APIPrefix), h.List)
 	return nil
 }
 
@@ -193,4 +205,73 @@ func (h *GHWebhookReceiverAPIHandler) List(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, model.NewListResponse(receiverDTOs))
+}
+
+// Update update webhook receiver
+func (h *GHWebhookReceiverAPIHandler) Update(c *gin.Context) {
+	id := core.GetPathVarUInt(c, "id")
+	if id == nil {
+		return
+	}
+	updateDTO := GHWebhookReceiverUpdateDTO{}
+	err := c.ShouldBindJSON(&updateDTO)
+	if err != nil {
+		log.Errorf("invalid request: %v", err)
+		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
+		return
+	}
+
+	receiver := model.GHWebhookReceiver{}
+	if !core.GetModel(c, h.db, &receiver, "id = ?", *id) {
+		return
+	}
+
+	updateCnt := 0
+
+	if updateDTO.Name != nil {
+		receiver.Name = *updateDTO.Name
+		updateCnt++
+	}
+
+	if updateDTO.ReceiverConfig.Auth != nil {
+		receiver.ReceiverConfig.Auth = *updateDTO.ReceiverConfig.Auth
+		updateCnt++
+	}
+
+	if updateDTO.ReceiverConfig.Type != nil {
+		receiver.ReceiverConfig.Type = *updateDTO.ReceiverConfig.Type
+		updateCnt++
+	}
+
+	if updateDTO.ReceiverConfig.URL != nil {
+		receiver.ReceiverConfig.URL = *updateDTO.ReceiverConfig.URL
+		updateCnt++
+	}
+
+	if updateDTO.ReceiverConfig.Username != nil {
+		receiver.ReceiverConfig.Username = *updateDTO.ReceiverConfig.Username
+		updateCnt++
+	}
+
+	if updateDTO.ReceiverConfig.Password != nil {
+		receiver.ReceiverConfig.Password = *updateDTO.ReceiverConfig.Password
+		updateCnt++
+	}
+
+	if updateDTO.ReceiverConfig.Parameter != nil {
+		receiver.ReceiverConfig.Parameter = *updateDTO.ReceiverConfig.Parameter
+		updateCnt++
+	}
+
+	if updateCnt <= 0 {
+		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTO("no field to update"))
+		return
+	}
+	db := h.db.Save(&receiver)
+	if db.Error != nil {
+		log.Errorf("failed to update webhook receiver: %v", db.Error)
+		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
+		return
+	}
+	c.JSON(http.StatusOK, model.NewIDResponse(receiver.ID))
 }

@@ -146,9 +146,9 @@ func (f *GHWebhookField) IsValid() error {
 
 type GHWebHookSubscribe struct {
 	gorm.Model
-	GHWebHookReceiverID uint
-	//GHWebHookReceiver   GHWebhookReceiver
-	Event string // mandatory
+	GHWebhookReceiverID uint
+	GHWebhookReceiver   GHWebhookReceiver
+	Event               string // mandatory
 
 	Filters map[string]GHWebhookField `gorm:"serializer:json"`
 }

@@ -61,16 +61,16 @@ type GHWebhookFieldUpdateDTO struct {
 
 func (h *GHWebhookSubscribeAPIHandler) Register(c *core.GHPRContext) error {
 	h.db = c.Db
-	c.Gin.POST(fmt.Sprintf("%s/gh-webhook-receiver/:pId/subscribe", c.Cfg.APIPrefix), h.Post)
-	c.Gin.PATCH(fmt.Sprintf("%s/gh-webhook-receiver/:pId/subscribe/:id", c.Cfg.APIPrefix), h.Update)
-	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver/:pId/subscribe/:id", c.Cfg.APIPrefix), h.Get)
-	c.Gin.DELETE(fmt.Sprintf("%s/gh-webhook-receiver/:pId/subscribe/:id", c.Cfg.APIPrefix), h.Delete)
-	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver/:pId/subscribe", c.Cfg.APIPrefix), h.List)
+	c.Gin.POST(fmt.Sprintf("%s/gh-webhook-receiver/:id/subscribe", c.Cfg.APIPrefix), h.Post)
+	c.Gin.PATCH(fmt.Sprintf("%s/gh-webhook-receiver/:id/subscribe/:cId", c.Cfg.APIPrefix), h.Update)
+	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver/:id/subscribe/:cId", c.Cfg.APIPrefix), h.Get)
+	c.Gin.DELETE(fmt.Sprintf("%s/gh-webhook-receiver/:id/subscribe/:cId", c.Cfg.APIPrefix), h.Delete)
+	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver/:id/subscribe", c.Cfg.APIPrefix), h.List)
 	return nil
 }
 
 func (h *GHWebhookSubscribeAPIHandler) Post(c *gin.Context) {
-	pId, err := core.UIntParam(c, "pId")
+	pId, err := core.UIntParam(c, "id")
 	if err != nil {
 		log.Errorf("failed to convert pId: %v", err)
 		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
@@ -106,8 +106,8 @@ func (h *GHWebhookSubscribeAPIHandler) Post(c *gin.Context) {
 	}
 
 	sub := model.GHWebHookSubscribe{
-		GHWebHookReceiverID: pId,
-		GHWebHookReceiver:   receiver,
+		GHWebhookReceiverID: pId,
+		GHWebhookReceiver:   receiver,
 		Event:               createDto.Event,
 		Filters:             filters,
 	}
@@ -128,15 +128,18 @@ func (h *GHWebhookSubscribeAPIHandler) Post(c *gin.Context) {
 }
 
 func (h *GHWebhookSubscribeAPIHandler) Get(c *gin.Context) {
-	pId, err := core.UIntParam(c, "pId")
-	if err != nil {
-		log.Errorf("failed to convert pId: %v", err)
-		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
+	cId := core.GetPathVarUInt(c, "cId")
+	if cId == nil {
+		return
+	}
+
+	pId := core.GetPathVarUInt(c, "id")
+	if pId == nil {
 		return
 	}
 
 	receiver := model.GHWebHookSubscribe{}
-	db := h.db.First(&receiver, "id = ?", pId)
+	db := h.db.First(&receiver, "id = ?", *cId)
 	if db.Error != nil {
 		log.Errorf("failed to find webhook receiver: %v", db.Error)
 		if errors.Is(db.Error, gorm.ErrRecordNotFound) {
@@ -160,14 +163,14 @@ func (h *GHWebhookSubscribeAPIHandler) Get(c *gin.Context) {
 		return
 	}
 
-	if sub.GHWebHookReceiverID != pId {
+	if sub.GHWebhookReceiverID != *pId {
 		log.Errorf("webhook receiver subscribe not found")
 		c.JSON(http.StatusNotFound, model.NewErrorMsgDTO(http.StatusText(http.StatusNotFound)))
 		return
 	}
 	mapper := dto.Mapper{}
 	to := GHWebhookSubscribeSearchDTO{}
-	err = mapper.Map(&to, sub)
+	err := mapper.Map(&to, sub)
 	if err != nil {
 		log.Errorf("failed to map: %v", err)
 		c.JSON(http.StatusInternalServerError, model.NewErrorMsgDTOFromErr(err))
@@ -209,7 +212,7 @@ func (h *GHWebhookSubscribeAPIHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if sub.GHWebHookReceiverID != pId {
+	if sub.GHWebhookReceiverID != pId {
 		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTO("cannot update receiver"))
 		return
 	}
@@ -284,7 +287,7 @@ func (h *GHWebhookSubscribeAPIHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if sub.GHWebHookReceiverID != pId {
+	if sub.GHWebhookReceiverID != pId {
 		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTO("cannot update receiver"))
 		return
 	}
