@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rbicker/go-rsql"
 	log "github.com/sirupsen/logrus"
+	"net/url"
 	"reflect"
 	"slices"
 	"strings"
@@ -39,12 +40,15 @@ func (r *RSQLHelper) ParseFilter(queryType any, c *gin.Context) error {
 	if err != nil {
 		return err
 	}
-	filter := c.Query("filter")
-	sort := c.Query("sort")
+
+	filter, sort, err := r.getRSQLQuery(c.Request.URL.RawQuery)
+	if err != nil {
+		return err
+	}
 
 	err = r.parseFilter(filter)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = r.parseSort(sort)
@@ -66,20 +70,20 @@ func (r *RSQLHelper) parseFilter(filter string) error {
 
 	res, err := parser.Process(filter)
 	if err != nil {
-		log.Fatalf("error while parsing: %s", err)
+		log.Errorf("error while parsing: %s", err)
 		return err
 	}
 	var jsonQuery map[string]interface{}
 
 	err = json.Unmarshal([]byte(res), &jsonQuery)
 	if err != nil {
-		log.Fatalf("error while parsing: %s", err)
+		log.Errorf("error while parsing: %s", err)
 		return err
 	}
 
 	sql, arguments, err := r.parseRSQL(jsonQuery)
 	if err != nil {
-		log.Fatalf("error while parsing: %s", err)
+		log.Errorf("error while parsing: %s", err)
 		return err
 	}
 	r.FilterSQL = sql
@@ -262,6 +266,49 @@ func (r *RSQLHelper) allowFilterField(field string) bool {
 		return val.AllowFilter
 	}
 	return false
+}
+
+func (r *RSQLHelper) getRSQLQuery(query string) (filter string, sort string, err error) {
+	count := 0
+	for query != "" {
+		if count >= 2 {
+			return
+		}
+		var key string
+		key, query, _ = strings.Cut(query, "&")
+		if key == "" {
+			continue
+		}
+
+		if !strings.Contains(key, "=") {
+			continue
+		}
+
+		index := strings.Index(key, "=")
+
+		name := strings.TrimSpace(key[:index])
+		if name == "filter" {
+			count++
+
+			var value string
+			value, err = url.QueryUnescape(strings.TrimSpace(key[index+1:]))
+
+			if err != nil {
+				return
+			}
+			filter = value
+		} else if name == "sort" {
+			count++
+			var value string
+			value, err = url.QueryUnescape(strings.TrimSpace(key[index+1:]))
+			if err != nil {
+				return
+			}
+			sort = value
+		}
+
+	}
+	return
 }
 
 func NewRSQLHelper() *RSQLHelper {
