@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -26,6 +27,7 @@ var OperationMap = map[string]string{
 type FieldQuery struct {
 	AllowSort   bool
 	AllowFilter bool
+	Kind        reflect.Kind
 }
 
 type RSQLHelper struct {
@@ -152,6 +154,8 @@ func (r *RSQLHelper) _parseRSQL(query map[string]interface{}) ([]string, []inter
 		if !r.allowFilterField(key) {
 			return nil, nil, fmt.Errorf("field %s is not allowed to filter", key)
 		}
+
+		fieldDef := r.FieldsQuery[key]
 		switch v := q.(type) {
 		case map[string]interface{}:
 			opVal := reflect.ValueOf(v).MapKeys()
@@ -164,15 +168,19 @@ func (r *RSQLHelper) _parseRSQL(query map[string]interface{}) ([]string, []inter
 			if !ok {
 				return nil, nil, fmt.Errorf("unknown operator %s", op)
 			}
-			args := []interface{}{v[op]}
+			var opArg, err = r.convertVal(v[op], fieldDef)
+
+			args := []interface{}{opArg}
 			sqls = append(sqls, sqlOp, "?")
-			return sqls, args, nil
+			return sqls, args, err
 		case []interface{}:
 			return nil, nil, fmt.Errorf("query must be a scalar value or a map, not %v", v)
 		default:
 			sqls = append(sqls, "=", "?")
-			args := []interface{}{v}
-			return sqls, args, nil
+			var opArg, err = r.convertVal(v, fieldDef)
+
+			args := []interface{}{opArg}
+			return sqls, args, err
 		}
 	}
 }
@@ -235,6 +243,7 @@ func (r *RSQLHelper) parseFieldsQuery(queryType any) error {
 			r.FieldsQuery[name] = &FieldQuery{
 				AllowFilter: false,
 				AllowSort:   false,
+				Kind:        fld.Type.Kind(),
 			}
 
 			for j := 1; j < len(tags); j++ {
@@ -307,6 +316,123 @@ func (r *RSQLHelper) getRSQLQuery(query string) (filter string, sort string, err
 			sort = value
 		}
 
+	}
+	return
+}
+
+func (r *RSQLHelper) convertVal(i interface{}, def *FieldQuery) (interface{}, error) {
+	switch i.(type) {
+	case int, int8, int16, int32, int64:
+		return r.convertInt(i.(int64), def)
+	case uint, uint8, uint16, uint32, uint64:
+		return r.convertUInt(i.(uint64), def)
+	case float32, float64:
+		return r.convertFloat(i.(float64), def)
+	case bool:
+		return r.convertBool(i.(bool), def)
+	case string:
+		return r.convertStr(i.(string), def)
+
+	default:
+		return nil, fmt.Errorf("rsql: invalid type %T", i)
+	}
+}
+
+func (r *RSQLHelper) convertInt(i int64, def *FieldQuery) (val interface{}, err error) {
+	switch def.Kind {
+	case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8, reflect.Int:
+		val = i
+	case reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
+		val = uint64(i)
+	case reflect.Float32, reflect.Float64:
+		val = float64(i)
+	case reflect.Bool:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", i, def.Kind)
+	case reflect.String:
+		val = fmt.Sprintf("%d", i)
+	default:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", i, def.Kind)
+	}
+	return
+}
+
+func (r *RSQLHelper) convertUInt(u uint64, def *FieldQuery) (val interface{}, err error) {
+	switch def.Kind {
+	case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8, reflect.Int:
+		val = int64(u)
+	case reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
+		val = u
+	case reflect.Float32, reflect.Float64:
+		val = float64(u)
+	case reflect.Bool:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", u, def.Kind)
+
+	case reflect.String:
+		val = fmt.Sprintf("%d", u)
+	default:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", u, def.Kind)
+	}
+	return
+}
+
+func (r *RSQLHelper) convertFloat(f float64, def *FieldQuery) (val interface{}, err error) {
+	switch def.Kind {
+	case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8, reflect.Int:
+		val = int64(f)
+	case reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
+		val = uint64(f)
+	case reflect.Float32, reflect.Float64:
+		val = f
+	case reflect.Bool:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", f, def.Kind)
+
+	case reflect.String:
+		val = fmt.Sprintf("%f", f)
+	default:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", f, def.Kind)
+	}
+	return
+}
+
+func (r *RSQLHelper) convertBool(b bool, def *FieldQuery) (val interface{}, err error) {
+	switch def.Kind {
+	case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8, reflect.Int:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", b, def.Kind)
+
+	case reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", b, def.Kind)
+
+	case reflect.Float32, reflect.Float64:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", b, def.Kind)
+
+	case reflect.Bool:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", b, def.Kind)
+
+	case reflect.String:
+		val = strconv.FormatBool(b)
+	default:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", b, def.Kind)
+	}
+	return
+}
+
+func (r *RSQLHelper) convertStr(s string, def *FieldQuery) (val interface{}, err error) {
+	switch def.Kind {
+	case reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8, reflect.Int:
+		val, err = strconv.ParseInt(s, 10, 64)
+
+	case reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Uint:
+		val, err = strconv.ParseUint(s, 10, 64)
+	case reflect.Float32, reflect.Float64:
+		val, err = strconv.ParseFloat(s, 64)
+
+	case reflect.Bool:
+		val, err = strconv.ParseBool(s)
+
+	case reflect.String:
+		val = s
+	default:
+		err = fmt.Errorf("rsql: invalid type %T, required type %d", s, def.Kind)
 	}
 	return
 }
