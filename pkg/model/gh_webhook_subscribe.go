@@ -25,14 +25,15 @@ type GHWebhookFieldVal struct {
 
 func (v *GHWebhookFieldVal) GetAsString() string {
 	switch v.Type.Kind() {
-	case reflect.Int64:
-		return fmt.Sprintf("%d", v.Value)
-	case reflect.Uint64:
+	case reflect.Int64, reflect.Uint64, reflect.Int32, reflect.Uint32, reflect.Int16, reflect.Uint16,
+		reflect.Int8, reflect.Uint8, reflect.Int, reflect.Uint:
 		return fmt.Sprintf("%d", v.Value)
 	case reflect.Float64:
 		return fmt.Sprintf("%f", v.Value)
 	case reflect.Bool:
 		return strconv.FormatBool(v.Value.(bool))
+	case reflect.String:
+		return v.Value.(string)
 	default:
 		return ""
 	}
@@ -52,7 +53,11 @@ func (v *GHWebhookFieldVal) IsString() bool {
 
 func (v *GHWebhookFieldVal) IsNumeric() bool {
 	return v.Type.Kind() == reflect.Float64 ||
-		v.Type.Kind() == reflect.Int64 || v.Type.Kind() == reflect.Uint64
+		v.Type.Kind() == reflect.Int64 || v.Type.Kind() == reflect.Uint64 ||
+		v.Type.Kind() == reflect.Int || v.Type.Kind() == reflect.Uint ||
+		v.Type.Kind() == reflect.Int32 || v.Type.Kind() == reflect.Uint32 ||
+		v.Type.Kind() == reflect.Int16 || v.Type.Kind() == reflect.Uint16 ||
+		v.Type.Kind() == reflect.Int8 || v.Type.Kind() == reflect.Uint8
 }
 
 func (v *GHWebhookFieldVal) IsBool() bool {
@@ -101,7 +106,7 @@ func (f *GHWebhookField) Matches(payload map[string]interface{}, ghEvent GHWebho
 		}
 	}
 
-	if len(f.Expr) >= 0 {
+	if len(f.Expr) > 0 {
 		program, err := expr.Compile(f.Expr, expr.AsBool())
 		if err != nil {
 			log.Errorf("failed to compile expr %s: %v", f.Expr, err)
@@ -116,13 +121,21 @@ func (f *GHWebhookField) Matches(payload map[string]interface{}, ghEvent GHWebho
 			log.Errorf("event[%d] failed to run expr %s: %v", ghEvent.ID, f.Expr, err)
 			return err
 		}
-		if output.(bool) {
-			log.Infof("event[%d] failed to match expr", ghEvent.ID)
-			return fmt.Errorf("event[%d] failed to match expr", ghEvent.ID)
+
+		switch reflect.TypeOf(output).Kind() {
+		case reflect.Bool:
+			if !output.(bool) {
+				log.Infof("event[%d] failed to match expr", ghEvent.ID)
+				return fmt.Errorf("event[%d] failed to match expr", ghEvent.ID)
+			}
+		default:
+			log.Errorf("invalid return type %v for expr %s", reflect.TypeOf(output), f.Expr)
+			return fmt.Errorf("invalid return type %v for expr %s", reflect.TypeOf(output), f.Expr)
 		}
+
 	}
 
-	if len(f.Child) >= 0 {
+	if len(f.Child) > 0 {
 		if !fieldVal.IsMap() {
 			return fmt.Errorf("unsupported type %T for Child", curObj)
 		}
@@ -139,6 +152,14 @@ func (f *GHWebhookField) Matches(payload map[string]interface{}, ghEvent GHWebho
 func (f *GHWebhookField) IsValid() error {
 	if len(f.PositiveMatches) == 0 && len(f.NegativeMatches) == 0 && len(f.Child) == 0 && len(f.Expr) == 0 {
 		return fmt.Errorf("no filter")
+	}
+
+	if len(f.Expr) > 0 {
+		_, err := expr.Compile(f.Expr, expr.AsBool())
+		if err != nil {
+			log.Errorf("failed to compile expr %s: %v", f.Expr, err)
+			return err
+		}
 	}
 	return nil
 

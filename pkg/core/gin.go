@@ -2,12 +2,26 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"gh-webhook/pkg/model"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
 )
+
+func UIntParam(c *gin.Context, name string) (uint, error) {
+	value, ok := c.Params.Get(name)
+	if !ok {
+		return 0, errors.New("param not found")
+	}
+	var intVal uint
+	n, err := fmt.Sscanf(value, "%d", &intVal)
+	if err != nil || n != 1 {
+		return 0, err
+	}
+	return intVal, nil
+}
 
 func GetModel[T any](c *gin.Context, db *gorm.DB, m *T, conds ...any) bool {
 	ret := db.First(m, conds...)

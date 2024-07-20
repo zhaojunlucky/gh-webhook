@@ -6,16 +6,22 @@ import (
 )
 
 type Pagination struct {
-	Page int `json:"page"`
-	Size int `json:"size"`
+	Page int `form:"page"`
+	Size int `form:"size"`
 }
 
 func ParsePagination(c *gin.Context) *Pagination {
 	var p Pagination
 	if err := c.ShouldBindQuery(&p); err != nil {
 		log.Error(err)
-		p.Page = 1
+
+	}
+
+	if p.Size == 0 {
 		p.Size = 100
+	}
+	if p.Page == 0 {
+		p.Page = 1
 	}
 
 	return &p

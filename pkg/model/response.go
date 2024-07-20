@@ -45,13 +45,8 @@ func NewErrorMsgDTO(message ...string) ErrorMessageDTO {
 }
 
 func NewErrorMsgDTOFromErr(err ...error) ErrorMessageDTO {
-	return ErrorMessageDTO{ErrorMessages: NewErrMsgs()}
-}
 
-func NewErrorMsgDTOFromError(err ...error) ErrorMessageDTO {
-	return ErrorMessageDTO{
-		ErrorMessages: NewErrMsgsFromErr(err...),
-	}
+	return ErrorMessageDTO{ErrorMessages: NewErrMsgsFromErr(err...)}
 }
 
 type IDResponse struct {
