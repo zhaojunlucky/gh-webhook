@@ -63,7 +63,7 @@ func (h *HttpAppLauncher) Launch(routineId int32, config *config.Config, re mode
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
 		return fmt.Errorf("failed to send request: %s", resp.Status)
 	}
 	body := "unknown"
@@ -78,7 +78,8 @@ func (h *HttpAppLauncher) Launch(routineId int32, config *config.Config, re mode
 	return nil
 }
 
-func (h *HttpAppLauncher) GetPayload(c *config.Config, re model.GHWebhookReceiver, event model.GHWebhookEvent, receiverDeliver model.GHWebhookEventReceiverDeliver) ([]byte, error) {
+func (h *HttpAppLauncher) GetPayload(c *config.Config, re model.GHWebhookReceiver, event model.GHWebhookEvent,
+	receiverDeliver model.GHWebhookEventReceiverDeliver) ([]byte, error) {
 	payload := map[string]interface{}{
 		"url":                fmt.Sprintf("%s/gh-webhook-event/%d", c.APIUrl, event.ID),
 		"event":              event,

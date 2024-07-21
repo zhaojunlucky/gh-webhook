@@ -11,7 +11,8 @@ type JenkinsLauncher struct {
 	HttpAppLauncher
 }
 
-func (h *JenkinsLauncher) GetPayload(c *config.Config, re model.GHWebhookReceiver, event model.GHWebhookEvent, receiverLog model.GHWebhookEventDeliver) ([]byte, error) {
+func (h *JenkinsLauncher) GetPayload(c *config.Config, re model.GHWebhookReceiver, event model.GHWebhookEvent,
+	receiverLog model.GHWebhookEventReceiverDeliver) ([]byte, error) {
 
 	parameter := re.ReceiverConfig.Parameter
 	if len(parameter) == 0 {
