@@ -29,8 +29,12 @@ func TestGetModelNotFound(t *testing.T) {
 	c.Request, _ = http.NewRequest("GET", "?sort=name,asc;id,desc", nil)
 	mock.ExpectQuery(`SELECT`).WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at",
 		"deleted_at", "web", "api", "name"}))
-	if GetModel(c, db, &model.GitHub{}, "id=1") {
+	if GetModel(c, db, &model.GitHub{}, "id=?", 1) {
 		t.Fatal("should be failed")
+	}
+
+	if w.Code != 404 {
+		t.Fatal("should be 404")
 	}
 
 }
@@ -59,6 +63,13 @@ func TestGetModelSuccess(t *testing.T) {
 		t.Fatal("id should be equal 1")
 	}
 
+	if w.Code != 200 {
+		t.Fatal("status code should be 200")
+	}
+
+	if w.Body.Available() != 0 {
+		t.Fatal("body should be nil")
+	}
 }
 
 func Test_GetPathVarUIntSuccessful(t *testing.T) {

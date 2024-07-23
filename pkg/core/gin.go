@@ -27,7 +27,7 @@ func GetModel[T any](c *gin.Context, db *gorm.DB, m *T, conds ...any) bool {
 	ret := db.First(m, conds...)
 	if ret.Error != nil {
 		log.Errorf("failed to find webhook receiver: %v", db.Error)
-		if errors.Is(db.Error, gorm.ErrRecordNotFound) {
+		if errors.Is(ret.Error, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, model.NewErrorMsgDTO(http.StatusText(http.StatusNotFound)))
 			return false
 		}
