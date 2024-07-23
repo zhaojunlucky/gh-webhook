@@ -71,6 +71,10 @@ func (f *GHWebhookField) Matches(payload map[string]interface{}, ghEvent GHWebho
 		return err
 	}
 
+	if curObj == nil {
+		return fmt.Errorf("key %s not found in payload", key)
+	}
+
 	fieldVal := GHWebhookFieldVal{Value: curObj, Type: reflect.TypeOf(curObj)}
 
 	if len(f.NegativeMatches) >= 0 || len(f.PositiveMatches) >= 0 {
@@ -187,7 +191,7 @@ func (s *GHWebHookSubscribe) Matches(payload map[string]interface{}, ghEvent GHW
 
 		} else {
 			log.Infof("filter %s matches", k)
-			break
+			return nil
 		}
 	}
 	return fmt.Errorf("event[%d] %s doesn't match %s", ghEvent.ID, ghEvent.Event, s.Event)

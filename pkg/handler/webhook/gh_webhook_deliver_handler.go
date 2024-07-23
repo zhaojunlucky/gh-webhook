@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"sync"
@@ -65,7 +66,8 @@ func (h *GHWebhookDeliverHandler) Close() error {
 func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent model.GHWebhookEvent) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Warningf("[go routine %d] event %d panic occurred: %v", routineId, ghEvent.ID, r)
+			log.Warningf("[go routine %d] handle: event %d panic occurred: %v, %s", routineId, ghEvent.ID, r,
+				string(debug.Stack()))
 		}
 	}()
 
@@ -95,7 +97,7 @@ func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent model.GHWebhoo
 	}
 
 	var receiver []model.GHWebhookReceiver
-	r := h.db.Where("github_id = ?", ghEvent.GitHubId).Find(&receiver)
+	r := h.db.Model(&model.GHWebhookReceiver{}).Preload("Subscribes").Where("github_id = ?", ghEvent.GitHubId).Find(&receiver)
 	if r.Error != nil {
 		log.Errorf("[go routine %d] failed to find receiver: %v", routineId, r.Error)
 		receiverLog.Delivered = false
@@ -162,7 +164,10 @@ func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re model.GHWeb
 		}
 
 		receiverDeliver.Delivered = true
-		receiverDeliver.Error = h.launchDelivery(routineId, re, event, receiverDeliver).Error()
+		deliverErr := h.launchDelivery(routineId, re, event, receiverDeliver)
+		if deliverErr != nil {
+			receiverDeliver.Error = deliverErr.Error()
+		}
 		break
 	}
 
