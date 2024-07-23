@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strconv"
 	"time"
 )
 
@@ -42,7 +43,17 @@ func setupLog() error {
 		log.Info("Failed to log to file, using default stderr")
 		return nil
 	}
+	log.SetReportCaller(true)
+	log.SetFormatter(&log.TextFormatter{
+		CallerPrettyfier: func(frame *runtime.Frame) (function string, file string) {
+			fileName := path.Base(frame.File) + ":" + strconv.Itoa(frame.Line)
+			//return frame.Function, fileName
+			return "", fileName
+		},
+	})
+
 	log.SetOutput(io.MultiWriter(os.Stdout, logFile))
+
 	return nil
 }
 
