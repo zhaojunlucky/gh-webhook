@@ -68,8 +68,15 @@ func (h *GitHubAPIHandler) Post(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
 		return
 	}
-
-	c.JSON(http.StatusCreated, github)
+	to := GitHubSearchDTO{}
+	mapper := dto.Mapper{}
+	err := mapper.Map(&to, github)
+	if err != nil {
+		log.Errorf("failed to map: %v", err)
+		c.JSON(http.StatusInternalServerError, model.NewErrorMsgDTOFromErr(err))
+		return
+	}
+	c.JSON(http.StatusOK, to)
 }
 
 func (h *GitHubAPIHandler) Get(c *gin.Context) {

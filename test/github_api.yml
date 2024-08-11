@@ -1,0 +1,127 @@
+name: github_api
+type: suite
+enabled: true # default is true
+environment:
+  API_PREFIX: http://localhost:8080/api
+global: # dynamic
+  headers:
+    Content-Type: application/json
+  dataDir: ./data
+  apiPrefix: ${env.API_PREFIX}
+cases:
+  - desc: list github servers
+    enabled: true # default is true
+    name: list
+    request:
+      url: github # dynamic
+      method: GET # default is get
+    response:
+      code: 200 #
+      contentType: application/json
+      body:
+        type: JSON
+        array: false # json array or not, default is false
+        length: 0 # json array length
+  - desc: create github server
+    enabled: true
+    name: create
+    request:
+      url: github
+      method: POST
+      headers:
+        "Content-Type": application/json
+      body: '{"web": "https://github.com", "api": "https://api.github.com/v3", "name": "github"}'
+    response:
+      code: 201
+      contentType: application/json
+      body:
+        type: JSON
+        array: false
+        validators:
+          and:
+            - $.id: 1
+  - desc: get github server
+    request:
+      url: github/${ctx.create.resp.id}
+      method: GET
+    response:
+      code: 200
+      contentType: application/json
+      body:
+        array: false
+        validators:
+          and:
+            - $.id: ${ctx.create.resp.id}
+        #containsRequestJSON: create
+#  - desc: create duplicate github server
+#    requestRef: create
+#    response:
+#      code: 400
+#      contentType: application/json
+#      body:
+#        validators:
+#          - $.errorMessages:
+#              ct: "name has already been taken"
+#  - desc: create second github server
+#    name: create2
+#    request:
+#      url: github
+#      method: POST
+#      body:
+#        file: create_gh_server2.json
+#        script: |
+#          let data = JSON.parse(body)
+#          data.name = 'test2'
+#          return JSON.stringify(data)
+#
+#    response:
+#      code: 201
+#      contentType: application/json
+#      body:
+#        array: false
+#        validators:
+#          and:
+#            - $.id: ${ctx.create.resp.id + 1}
+#  - desc: list github servers
+#    requestRef: list
+#    response:
+#      code: 200
+#      contentType: application/json
+#      body:
+#        array: false
+#        validators:
+#          and:
+#            - $.entryCount: 2
+#            - $.entries.length: 2
+#            - $.entries[0].id: ${ctx.create.resp.id}
+#            - $.entries[1].id: ${ctx.create2.resp.id}
+#            - or:
+#                - $.entries[0].name: 'test'
+#                - $.entries[1].name: 'test2'
+#  - desc: delete github server
+#    request:
+#      url: github/${ctx.create2.resp.id}
+#      method: DELETE
+#    response:
+#      code: 204
+#  - desc: list github servers
+#    requestRef: list
+#    response:
+#      code: 200
+#      contentType: application/json
+#      body:
+#        array: false
+#        validators:
+#          and:
+#            - $.entryCount: 1
+#            - $.entries.length: 1
+#            - $.entries[0].id: ${ctx.create.resp.id}
+#        script: if (body.entries[0].name != 'xxx') {
+#          throw new Error("invalid name")
+#          }
+#  - desc: get github server
+#    request:
+#      url: github/${ctx.create2.resp.id}
+#      method: GET
+#    response:
+#      code: 404
