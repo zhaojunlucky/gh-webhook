@@ -76,7 +76,7 @@ func (h *GitHubAPIHandler) Post(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, model.NewErrorMsgDTOFromErr(err))
 		return
 	}
-	c.JSON(http.StatusOK, to)
+	c.JSON(http.StatusCreated, to)
 }
 
 func (h *GitHubAPIHandler) Get(c *gin.Context) {

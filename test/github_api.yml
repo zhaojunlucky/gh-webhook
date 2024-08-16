@@ -53,15 +53,14 @@ cases:
           and:
             - $.id: ${ctx.create.resp.id}
         #containsRequestJSON: create
-#  - desc: create duplicate github server
-#    requestRef: create
-#    response:
-#      code: 400
-#      contentType: application/json
-#      body:
-#        validators:
-#          - $.errorMessages:
-#              ct: "name has already been taken"
+  - desc: create duplicate github server
+    requestRef: create
+    response:
+      code: 422
+      contentType: application/json
+      body:
+        validators:
+          - $.errorMessages[0].message: "UNIQUE constraint failed: git_hubs.api"
 #  - desc: create second github server
 #    name: create2
 #    request:
