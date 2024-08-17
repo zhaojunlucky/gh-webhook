@@ -58,69 +58,68 @@ cases:
     response:
       code: 422
       contentType: application/json
+#      body:
+#        validators:
+#          - $.errorMessages[0].message: "UNIQUE constraint failed: git_hubs.name"
+  - desc: create second github server
+    name: create2
+    request:
+      url: github
+      method: POST
       body:
+        file: create_gh_server2.json
+        script: |
+          let data = JSON.parse(body)
+          data.name = 'test2'
+          JSON.stringify(data)
+
+    response:
+      code: 201
+      contentType: application/json
+      body:
+        array: false
         validators:
-          - $.errorMessages[0].message: "UNIQUE constraint failed: git_hubs.api"
-#  - desc: create second github server
-#    name: create2
-#    request:
-#      url: github
-#      method: POST
-#      body:
-#        file: create_gh_server2.json
-#        script: |
-#          let data = JSON.parse(body)
-#          data.name = 'test2'
-#          return JSON.stringify(data)
-#
-#    response:
-#      code: 201
-#      contentType: application/json
-#      body:
-#        array: false
-#        validators:
-#          and:
-#            - $.id: ${ctx.create.resp.id + 1}
-#  - desc: list github servers
-#    requestRef: list
-#    response:
-#      code: 200
-#      contentType: application/json
-#      body:
-#        array: false
-#        validators:
-#          and:
-#            - $.entryCount: 2
-#            - $.entries.length: 2
-#            - $.entries[0].id: ${ctx.create.resp.id}
-#            - $.entries[1].id: ${ctx.create2.resp.id}
-#            - or:
-#                - $.entries[0].name: 'test'
-#                - $.entries[1].name: 'test2'
-#  - desc: delete github server
-#    request:
-#      url: github/${ctx.create2.resp.id}
-#      method: DELETE
-#    response:
-#      code: 204
-#  - desc: list github servers
-#    requestRef: list
-#    response:
-#      code: 200
-#      contentType: application/json
-#      body:
-#        array: false
-#        validators:
-#          and:
-#            - $.entryCount: 1
+          and:
+            - $.id: ${ctx.create.resp.id + 1}
+  - desc: list github servers
+    requestRef: list
+    response:
+      code: 200
+      contentType: application/json
+      body:
+        array: false
+        validators:
+          and:
+            - $.entryCount: 2
+            - $.entries[0].id: ${ctx.create.resp.id}
+            - $.entries[1].id: ${ctx.create2.resp.id}
+            - or:
+                - $.entries[0].name: 'test'
+                - $.entries[1].name: 'test2'
+  - desc: delete github server
+    request:
+      url: github/${ctx.create2.resp.id}
+      method: DELETE
+    response:
+      code: 204
+  - desc: list github servers
+    requestRef: list
+    response:
+      code: 200
+      contentType: application/json
+      body:
+        array: false
+        validators:
+          and:
+            - $.entryCount: 1
 #            - $.entries.length: 1
-#            - $.entries[0].id: ${ctx.create.resp.id}
-#        script: if (body.entries[0].name != 'xxx') {
+            - $.entries[0].id: ${ctx.create.resp.id}
+#        script: if (body.entries[0].name != 'github') {
 #          throw new Error("invalid name")
 #          }
-#  - desc: get github server
-#    request:
-#      url: github/${ctx.create2.resp.id}
-#      method: GET
-#    response:
-#      code: 404
+  - desc: get github server
+    request:
+      url: github/${ctx.create2.resp.id}
+      method: GET
+    response:
+      code: 404
