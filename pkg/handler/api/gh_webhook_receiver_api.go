@@ -24,7 +24,7 @@ type GHWebhookReceiverConfigCreateDTO struct {
 	Auth      string `json:"auth" binding:"required"`
 	Username  string `json:"username"`
 	Password  string `json:"password"`
-	Parameter string `json:"parameter" binding:"required"` // optional
+	Parameter string `json:"parameter"` // optional
 }
 
 type GHWebhookReceiverCreateDTO struct {
@@ -69,7 +69,7 @@ func (h *GHWebhookReceiverAPIHandler) Register(c *core.GHPRContext) error {
 	h.db = c.Db
 	c.Gin.POST(fmt.Sprintf("%s/gh-webhook-receiver/", c.Cfg.APIPrefix), h.Post)
 	c.Gin.PATCH(fmt.Sprintf("%s/gh-webhook-receiver/:id", c.Cfg.APIPrefix), h.Update)
-	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver/:id", c.Cfg.APIPrefix), h.Delete)
+	c.Gin.DELETE(fmt.Sprintf("%s/gh-webhook-receiver/:id", c.Cfg.APIPrefix), h.Delete)
 	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver", c.Cfg.APIPrefix), h.List)
 	return nil
 }
