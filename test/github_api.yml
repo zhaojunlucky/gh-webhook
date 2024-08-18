@@ -114,9 +114,9 @@ cases:
             - $.entryCount: 1
 #            - $.entries.length: 1
             - $.entries[0].id: ${ctx.create.resp.id}
-#        script: if (body.entries[0].name != 'github') {
-#          throw new Error("invalid name")
-#          }
+        script: if (body.entries[0].name != 'github') {
+          throw new Error("invalid name")
+          }
   - desc: get github server
     request:
       url: github/${ctx.create2.resp.id}
