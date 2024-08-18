@@ -71,6 +71,7 @@ func (h *GHWebhookReceiverAPIHandler) Register(c *core.GHPRContext) error {
 	c.Gin.PATCH(fmt.Sprintf("%s/gh-webhook-receiver/:id", c.Cfg.APIPrefix), h.Update)
 	c.Gin.DELETE(fmt.Sprintf("%s/gh-webhook-receiver/:id", c.Cfg.APIPrefix), h.Delete)
 	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver", c.Cfg.APIPrefix), h.List)
+	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-receiver/:id", c.Cfg.APIPrefix), h.Get)
 	return nil
 }
 
