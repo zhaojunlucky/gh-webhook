@@ -1,0 +1,127 @@
+name: webhook_receiver_subscribe_api
+type: suite
+enabled: true # default is true
+environment:
+  API_PREFIX: http://localhost:8080/api
+global: # dynamic
+  headers:
+    Content-Type: application/json
+  dataDir: ./data
+  apiPrefix: ${env.API_PREFIX}
+cases:
+  - desc: list webhook receivers subscribe
+    enabled: true # default is true
+    name: list
+    request:
+      url: gh-webhook-receiver/1/subscribe # dynamic
+      method: GET # default is get
+    response:
+      code: 200 #
+      contentType: application/json
+      body:
+        type: JSON
+        array: false # json array or not, default is false
+        length: 0 # json array length
+  - desc: create github webhook receiver subscribe
+    enabled: true
+    name: create
+    request:
+      url: gh-webhook-receiver/1/subscribe
+      method: POST
+      headers:
+        "Content-Type": application/json
+      body: >
+        {"event":"pull_request","filter":{"$.action":{"positiveMatches":["opened","reopened","synchronize"]},"$.pull_request.base.ref":{"positiveMatches":["main","stage","shared/*"]}}}
+    response:
+      code: 201
+      contentType: application/json
+      body:
+        type: JSON
+        array: false
+        validators:
+          and:
+            - $.id: 1
+  - desc: get github webhook receiver subscribe
+    request:
+     url: gh-webhook-receiver/1/subscribe/${ctx.create.resp.id}
+     method: GET
+    response:
+     code: 200
+     contentType: application/json
+     body:
+       array: false
+       validators:
+         and:
+           - $.id: ${ctx.create.resp.id}
+           - $.event: pull_request
+
+  - desc: create duplicate github webhook receiver subscribe
+    enabled: true
+    requestRef: create
+    response:
+      code: 422
+      contentType: application/json
+
+  - desc: create 2nd github webhook receiver
+    name: create2
+    enabled: true
+    request:
+      url: gh-webhook-receiver
+      method: POST
+      headers:
+        "Content-Type": application/json
+      body: >
+        {"event":"push","filter":{"$.ref":{"positiveMatches":["ref/heads/main", "ref/heads/stage", "ref/heads/shared/*"]}}}
+    response:
+      code: 201
+      contentType: application/json
+      body:
+        type: JSON
+        array: false
+        validators:
+          and:
+            - $.id: 2
+            - $.event: push
+  - desc: list github webhook receiver subscribe
+    requestRef: list
+    response:
+      code: 200
+      contentType: application/json
+      body:
+        array: false
+        validators:
+          and:
+            - $.entryCount: 2
+            - $.entries[0].id: ${ctx.create.resp.id}
+            - $.entries[1].id: ${ctx.create2.resp.id}
+            - or:
+                - $.entries[0].event: 'pull_request'
+                - $.entries[1].event: 'push'
+  - desc: delete github webhook receiver subscribe
+    request:
+      url: gh-webhook-receiver/1/subscribe/${ctx.create2.resp.id}
+      method: DELETE
+    response:
+      code: 204
+  - desc: list github webhook receiver subscribe
+    requestRef: list
+    response:
+      code: 200
+      contentType: application/json
+      body:
+        array: false
+        validators:
+          and:
+            - $.entryCount: 1
+#            - $.entries.length: 1
+            - $.entries[0].id: ${ctx.create.resp.id}
+        script: if (body.entries[0].event != 'push_request') {
+          throw new Error("invalid event")
+          }
+  - desc: get github webhook receiver subscribe
+    request:
+      url: gh-webhook-receiver/1/subscribe/${ctx.create2.resp.id}
+      method: GET
+    response:
+      code: 404
+  

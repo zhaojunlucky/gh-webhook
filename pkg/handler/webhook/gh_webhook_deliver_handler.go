@@ -153,7 +153,7 @@ func (h *GHWebhookDeliverHandler) handleReceiver(routineId int32, re model.GHWeb
 	}
 
 	for _, sub := range re.Subscribes {
-		if sub.Event != event.Action {
+		if sub.Event != event.Event {
 			log.Infof("[go routine %d] skip subscribe for event %s", routineId, sub.Event)
 			continue
 		}
