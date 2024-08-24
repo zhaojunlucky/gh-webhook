@@ -31,7 +31,7 @@ cases:
       headers:
         "Content-Type": application/json
       body: >
-        {"event":"pull_request","filter":{"$.action":{"positiveMatches":["opened","reopened","synchronize"]},"$.pull_request.base.ref":{"positiveMatches":["main","stage","shared/*"]}}}
+        {"event":"pull_request","filters":{"$.action":{"positiveMatches":["opened","reopened","synchronize"]},"$.pull_request.base.ref":{"positiveMatches":["main","stage","shared/*"]}}}
     response:
       code: 201
       contentType: application/json
@@ -66,12 +66,12 @@ cases:
     name: create2
     enabled: true
     request:
-      url: gh-webhook-receiver
+      url: gh-webhook-receiver/1/subscribe
       method: POST
       headers:
         "Content-Type": application/json
       body: >
-        {"event":"push","filter":{"$.ref":{"positiveMatches":["ref/heads/main", "ref/heads/stage", "ref/heads/shared/*"]}}}
+        {"event":"push","filters":{"$.ref":{"positiveMatches":["ref/heads/main", "ref/heads/stage", "ref/heads/shared/*"]}}}
     response:
       code: 201
       contentType: application/json
@@ -81,7 +81,6 @@ cases:
         validators:
           and:
             - $.id: 2
-            - $.event: push
   - desc: list github webhook receiver subscribe
     requestRef: list
     response:
@@ -113,9 +112,9 @@ cases:
         validators:
           and:
             - $.entryCount: 1
-#            - $.entries.length: 1
+            - len($.entries): 1
             - $.entries[0].id: ${ctx.create.resp.id}
-        script: if (body.entries[0].event != 'push_request') {
+        script: if (body.entries[0].event != 'pull_request') {
           throw new Error("invalid event")
           }
   - desc: get github webhook receiver subscribe

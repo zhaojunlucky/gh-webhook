@@ -118,7 +118,7 @@ func (h *GHWebhookSubscribeAPIHandler) Post(c *gin.Context) {
 		return
 	}
 
-	h.db.Save(&sub)
+	db = h.db.Save(&sub)
 	if db.Error != nil {
 		log.Errorf("failed to save webhook receiver: %v", db.Error)
 		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
@@ -138,21 +138,9 @@ func (h *GHWebhookSubscribeAPIHandler) Get(c *gin.Context) {
 		return
 	}
 
-	receiver := model.GHWebHookSubscribe{}
-	db := h.db.First(&receiver, "id = ?", *cId)
-	if db.Error != nil {
-		log.Errorf("failed to find webhook receiver: %v", db.Error)
-		if errors.Is(db.Error, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusBadRequest, model.NewErrorMsgDTO(http.StatusText(http.StatusBadRequest)))
-			return
-		}
-		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
-		return
-	}
-
 	sub := model.GHWebHookSubscribe{}
 
-	db = h.db.First(&sub, "id = ?", receiver.ID)
+	db := h.db.First(&sub, "id = ?", *cId)
 	if db.Error != nil {
 		log.Errorf("failed to find webhook receiver subscribe: %v", db.Error)
 		if errors.Is(db.Error, gorm.ErrRecordNotFound) {
@@ -180,28 +168,21 @@ func (h *GHWebhookSubscribeAPIHandler) Get(c *gin.Context) {
 }
 
 func (h *GHWebhookSubscribeAPIHandler) Update(c *gin.Context) {
-	pId, err := core.UIntParam(c, "pId")
+	pId, err := core.UIntParam(c, "id")
 	if err != nil {
 		log.Errorf("failed to convert pId: %v", err)
 		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
 		return
 	}
 
-	receiver := model.GHWebHookSubscribe{}
-	db := h.db.First(&receiver, "id = ?", pId)
-	if db.Error != nil {
-		log.Errorf("failed to find webhook receiver: %v", db.Error)
-		if errors.Is(db.Error, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusBadRequest, model.NewErrorMsgDTO(http.StatusText(http.StatusBadRequest)))
-			return
-		}
-		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
+	cId := core.GetPathVarUInt(c, "cId")
+	if cId == nil {
 		return
 	}
 
 	sub := model.GHWebHookSubscribe{}
 
-	db = h.db.First(&sub, "id = ?", receiver.ID)
+	db := h.db.First(&sub, "id = ?", *cId)
 	if db.Error != nil {
 		log.Errorf("failed to find webhook receiver subscribe: %v", db.Error)
 		if errors.Is(db.Error, gorm.ErrRecordNotFound) {
@@ -255,28 +236,21 @@ func (h *GHWebhookSubscribeAPIHandler) Update(c *gin.Context) {
 }
 
 func (h *GHWebhookSubscribeAPIHandler) Delete(c *gin.Context) {
-	pId, err := core.UIntParam(c, "pId")
+	pId, err := core.UIntParam(c, "id")
 	if err != nil {
 		log.Errorf("failed to convert pId: %v", err)
 		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(err))
 		return
 	}
 
-	receiver := model.GHWebHookSubscribe{}
-	db := h.db.First(&receiver, "id = ?", pId)
-	if db.Error != nil {
-		log.Errorf("failed to find webhook receiver: %v", db.Error)
-		if errors.Is(db.Error, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusBadRequest, model.NewErrorMsgDTO(http.StatusText(http.StatusBadRequest)))
-			return
-		}
-		c.JSON(http.StatusUnprocessableEntity, model.NewErrorMsgDTOFromErr(db.Error))
+	cId := core.GetPathVarUInt(c, "cId")
+	if cId == nil {
 		return
 	}
 
 	sub := model.GHWebHookSubscribe{}
 
-	db = h.db.First(&sub, "id = ?", receiver.ID)
+	db := h.db.First(&sub, "id = ?", *cId)
 	if db.Error != nil {
 		log.Errorf("failed to find webhook receiver subscribe: %v", db.Error)
 		if errors.Is(db.Error, gorm.ErrRecordNotFound) {

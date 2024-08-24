@@ -117,7 +117,7 @@ cases:
         validators:
           and:
             - $.entryCount: 1
-#            - $.entries.length: 1
+            - len($.entries): 1
             - $.entries[0].id: ${ctx.create.resp.id}
         script: if (body.entries[0].name != 'receiver1') {
           throw new Error("invalid name")

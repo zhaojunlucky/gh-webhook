@@ -58,9 +58,9 @@ cases:
     response:
       code: 422
       contentType: application/json
-#      body:
-#        validators:
-#          - $.errorMessages[0].message: "UNIQUE constraint failed: git_hubs.name"
+      body:
+        validators:
+          - contain("UNIQUE constraint failed:", $.errorMessages[0].message): true
   - desc: create second github server
     name: create2
     request:
@@ -112,7 +112,7 @@ cases:
         validators:
           and:
             - $.entryCount: 1
-#            - $.entries.length: 1
+            - len($.entries): 1
             - $.entries[0].id: ${ctx.create.resp.id}
         script: if (body.entries[0].name != 'github') {
           throw new Error("invalid name")
