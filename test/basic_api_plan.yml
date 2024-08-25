@@ -1,0 +1,13 @@
+name: basic api test plan
+type: plan
+enabled: true # default is true
+environment:
+  API_PREFIX: http://localhost:8080/api
+global: # dynamic
+  headers:
+    Content-Type: application/json
+  apiPrefix: ${env.API_PREFIX}
+suites:
+  - github_api
+  - webhook_receiver_api
+  - webhook_receiver_subscribe_api
