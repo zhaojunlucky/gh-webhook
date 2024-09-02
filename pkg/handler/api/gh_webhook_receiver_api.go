@@ -48,10 +48,10 @@ type GHWebhookReceiverUpdateDTO struct {
 }
 
 type GHWebhookReceiverSearchDTO struct {
-	ID             uint   `json:"id" rsql:"id,filter,sort"`
-	Name           string `json:"name" rsql:"name,filter,sort"`
-	GitHub         GitHubSearchDTO
-	ReceiverConfig GHWebhookReceiverConfigSearchDTO `json:"config"`
+	ID             uint                             `json:"id" rsql:"id,filter,sort"`
+	Name           string                           `json:"name" rsql:"name,filter,sort"`
+	GitHub         GitHubSearchDTO                  `json:"github"`
+	ReceiverConfig GHWebhookReceiverConfigSearchDTO `json:"receiverConfig"`
 	CreatedAt      time.Time                        `json:"createdAt" `
 	UpdatedAt      time.Time                        `json:"updatedAt" `
 }
@@ -61,7 +61,6 @@ type GHWebhookReceiverConfigSearchDTO struct {
 	URL       string `json:"url" `
 	Auth      string `json:"auth" `
 	Username  string `json:"username"`
-	Password  string `json:"password"`
 	Parameter string `json:"parameter" ` // optional
 }
 

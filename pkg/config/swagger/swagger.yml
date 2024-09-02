@@ -1,0 +1,533 @@
+swagger: "2.0"
+basePath: /api
+definitions:
+  error:
+    type: object
+    properties:
+      message:
+        type: string
+        description: Error message
+  errors:
+    type: object
+    properties:
+      errorMessages:
+        type: array
+        items:
+          $ref: '#/definitions/error'
+  created:
+    type: object
+    properties:
+      id:
+        type: integer
+        description: Created object id
+  updated:
+    type: object
+    properties:
+      id:
+        type: integer
+        description: Updated object id
+  githubServer:
+    type: object
+    properties:
+      id:
+        type: integer
+        description: Github server id
+      name:
+        type: string
+        description: Github server name
+      web:
+        type: string
+        description: Github server webhook url
+      api:
+        type: string
+        description: Github server api url
+      createdAt:
+        type: string
+        description: Github server creation date
+      updatedAt:
+        type: string
+        description: Github server update date
+  webhookReceiver:
+    type: object
+    properties:
+      id:
+        type: integer
+        description: Webhook receiver id
+      name:
+        type: string
+        description: Webhook receiver name
+      github:
+        $ref: '#/definitions/githubServer'
+      createdAt:
+        type: string
+        description: Github server creation date
+      updatedAt:
+        type: string
+        description: Github server update date
+      receiverConfig:
+        type: object
+        properties:
+          type:
+            type: string
+            description: Webhook receiver type
+          url:
+            type: string
+            description: Webhook receiver url
+          auth:
+            type: string
+            description: Webhook receiver auth
+          username:
+            type: string
+            description: Webhook receiver username
+          parameter:
+            type: string
+            description: Webhook receiver parameter
+            example: "payload"
+  ghWebhookSubscribeCreateFilter:
+    type: object
+    properties:
+      additionalProperties:
+        type: object
+        properties:
+          positiveMatches:
+            type: array
+            items:
+              type: string
+          negativeMatches:
+            type: array
+            items:
+              type: string
+          expr:
+            type: string
+          child:
+            $ref: '#/definitions/ghWebhookSubscribeCreateFilter'
+
+info:
+  contact:
+    email: jun@exia.dev
+    name: Github webhook API
+    url: https://exia.dev/projects/gh-webhook
+  description: Github webhook API server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Github webhook API
+  version: "1.0"
+paths:
+  /hook/gh-webhook:
+    post:
+      summary: Deliver a github webhook event
+      consumes:
+        - application/json
+      description: deliver a github webhook event
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                description: status will be always ok
+        "422":
+          description: unable to save github webhook payload
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                description: status will be error details
+
+  /gh-webhook-handler/queue:
+    get:
+      summary: Get webhook handler queue info
+      consumes:
+        - application/json
+      description: get webhook handler queue info
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: object
+            properties:
+              queue:
+                type: integer
+                description: queue length
+  /github:
+    post:
+      summary: create a new github server
+      description: create a github server
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: github
+          description: The github server to create.
+          schema:
+            type: object
+            required:
+              - web
+              - api
+              - name
+            properties:
+              web:
+                type: string
+              api:
+                type: string
+              name:
+                type: string
+      responses:
+        201:
+          description: Created
+          schema:
+            $ref: "#/definitions/created"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+    get:
+      summary: get all github servers
+      description: get all github servers
+      produces:
+        - application/json
+      responses:
+        200:
+          description: github servers
+          schema:
+            type: object
+            properties:
+              entries:
+                type: array
+                items:
+                  $ref: "#/definitions/githubServer"
+              entryCount:
+                type: integer
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+
+  /github/{id}:
+    patch:
+      summary: update a new github server
+      description: update a github server
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: github
+          description: The github server to update.
+          schema:
+            type: object
+            properties:
+              web:
+                type: string
+              api:
+                type: string
+              name:
+                type: string
+      responses:
+        200:
+          description: Created
+          schema:
+            $ref: "#/definitions/updated"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+    get:
+      summary: get a github server
+      description: get a github server
+      produces:
+        - application/json
+      responses:
+        200:
+          description: github server
+          schema:
+            $ref: "#/definitions/githubServer"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+    delete:
+      summary: delete a github server
+      description: delete a github server
+      produces:
+        - application/json
+      responses:
+        204:
+          description: No Content
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+  /gh-webhook-receiver:
+    post:
+      summary: create a new webhook receiver
+      description: create a webhook receiver
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: webhookReceiver
+          description: The webhook receiver to create.
+          schema:
+            type: object
+            required:
+              - name
+              - githubId
+              - receiverConfig
+            properties:
+              name:
+                type: string
+              githubId:
+                type: integer
+              receiverConfig:
+                required:
+                  - type
+                  - url
+                  - auth
+                type: object
+                properties:
+                  type:
+                    type: string
+                  url:
+                    type: string
+                  auth:
+                    type: string
+                  username:
+                    type: string
+                  password:
+                    type: string
+      responses:
+        201:
+          description: Created
+          schema:
+            $ref: "#/definitions/created"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+    get:
+      summary: get all webhook receivers
+      description: get all webhook receivers
+      produces:
+        - application/json
+      responses:
+        200:
+          description: webhook receivers
+          schema:
+            type: object
+            properties:
+              entries:
+                type: array
+                items:
+                  $ref: "#/definitions/webhookReceiver"
+              entryCount:
+                type: integer
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+  /gh-webhook-receiver/:id:
+    patch:
+      summary: update a webhook receiver
+      description: update a webhook receiver
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: webhookReceiver
+          description: The webhook receiver to update.
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              receiverConfig:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    description: Webhook receiver type
+                  url:
+                    type: string
+                    description: Webhook receiver url
+                  auth:
+                    type: string
+                    description: Webhook receiver auth
+                  username:
+                    type: string
+                    description: Webhook receiver username
+                  password:
+                    type: string
+                    description: Webhook receiver password
+                  parameter:
+                    type: string
+                    description: Webhook receiver parameter
+                    example: "payload"
+      responses:
+        200:
+          description: Created
+          schema:
+            $ref: "#/definitions/updated"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+    get:
+      summary: get a webhook receiver
+      description: get a webhook receiver
+      produces:
+        - application/json
+      responses:
+        200:
+          description: webhook receiver
+          schema:
+            $ref: "#/definitions/webhookReceiver"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+    delete:
+      summary: delete a webhook receiver
+      description: delete a webhook receiver
+      produces:
+        - application/json
+      responses:
+        204:
+          description: No Content
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+
+  /gh-webhook-receiver/:id/subscribe:
+    post:
+      summary: create a subscribe for webhook receiver
+      description: create a subscribe for webhook receiver
+      produces:
+        - application/json
+      responses:
+        201:
+          description: create subscribe
+          schema:
+            type: object
+            properties:
+              event:
+                type: string
+                description: subscribe event
+              filters:
+                $ref: "#/definitions/ghWebhookSubscribeCreateFilter"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+    get:
+      summary: get all subscribe for webhook receiver
+      description: get all subscribe for webhook receiver
+      produces:
+        - application/json
+      responses:
+        200:
+          description: webhook receivers
+          schema:
+            type: object
+            properties:
+              entries:
+                type: array
+                items:
+                  properties:
+                    id:
+                      type: integer
+                    receiverId:
+                      type: integer
+                    event:
+                      type: string
+                    filters:
+                      $ref: "#/definitions/ghWebhookSubscribeCreateFilter"
+
+              entryCount:
+                type: integer
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+  /gh-webhook-receiver/:id/subscribe/:cId:
+    get:
+      summary: get a subscribe for webhook receiver
+      description: get a subscribe for webhook receiver
+      produces:
+        - application/json
+      responses:
+        200:
+          description: get webhook receiver subscribe
+          schema:
+            type: object
+            properties:
+              id:
+                type: integer
+              receiverId:
+                type: integer
+              event:
+                type: string
+                description: subscribe event
+              filters:
+                $ref: "#/definitions/ghWebhookSubscribeCreateFilter"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+    patch:
+      summary: update a subscribe for webhook receiver
+      description: update a subscribe for webhook receiver
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: webhookReceiver
+          description: The webhook receiver to update.
+          schema:
+            type: object
+            properties:
+              event:
+                type: string
+                description: subscribe event
+              filters:
+                $ref: "#/definitions/ghWebhookSubscribeCreateFilter"
+      responses:
+        200:
+          description: Updated
+          schema:
+            $ref: "#/definitions/updated"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+    delete:
+      summary: unsubscribe a webhook receiver
+      description: unsubscribe a webhook receiver
+      produces:
+        - application/json
+      responses:
+        204:
+          description: No Content
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"

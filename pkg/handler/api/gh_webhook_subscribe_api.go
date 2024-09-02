@@ -33,7 +33,7 @@ type GHWebhookSubscribeCreateDTO struct {
 
 type GHWebhookSubscribeSearchDTO struct {
 	ID                  uint   `json:"id" rsql:"id,filter,sort"`
-	GHWebHookReceiverID uint   `json:"recieverId" rsql:"recieverId,filter,sort"`
+	GHWebHookReceiverID uint   `json:"receiverId" rsql:"receiverId,filter,sort"`
 	Event               string `json:"event"`
 
 	Filters map[string]GHWebhookFieldSearchDTO `json:"filters"`
