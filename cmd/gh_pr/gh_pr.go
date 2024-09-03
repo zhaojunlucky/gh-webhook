@@ -9,6 +9,8 @@ import (
 	"gh-webhook/pkg/route"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"io"
@@ -89,6 +91,10 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
+
+	url := ginSwagger.URL(fmt.Sprintf("%s/docs/swagger/swagger.yaml", cfg.APIUrl)) // The url pointing to API definition
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler, url))
+
 	err = r.Run(cfg.ListenAddr)
 	if err != nil {
 		log.Panic(err)

@@ -17,7 +17,7 @@ type GHWebhookEventReceiverDeliverAPIHandler struct {
 
 type GHWebhookEventReceiverDeliverSearchDTO struct {
 	ID                      uint   `json:"id" rsql:"id,filter,sort"`
-	GHWebhookReceiverId     uint   `json:"GHWebhookReceiverId" rsql:"ghWebhookReceiverId,filter,sort"`
+	GHWebhookReceiverId     uint   `json:"ghWebhookReceiverId" rsql:"ghWebhookReceiverId,filter,sort"`
 	GHWebhookEventDeliverID uint   `json:"ghWebhookEventDeliverId" rsql:"ghWebhookEventDeliverId,filter,sort"`
 	Delivered               bool   `json:"delivered" rsql:"delivered,filter,sort"`
 	Error                   string `json:"error" rsql:"error,filter,sort"`
@@ -98,5 +98,5 @@ func (h *GHWebhookEventReceiverDeliverAPIHandler) Put(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, model.NewErrorMsgDTOFromErr(err))
 		return
 	}
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusNoContent, nil)
 }

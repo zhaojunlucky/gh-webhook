@@ -38,10 +38,10 @@ func (h *GHWebhookEventDeliverAPIHandler) Register(c *core.GHPRContext) error {
 
 func (h *GHWebhookEventDeliverAPIHandler) List(c *gin.Context) {
 	var subs []model.GHWebhookEventDeliver
-	if !core.SearchModel(c, h.db, GHWebhookEventSearchDTO{}, &subs) {
+	if !core.SearchModel(c, h.db, GHWebhookEventDeliverSearchDTO{}, &subs) {
 		return
 	}
-	var receiverDTOs []GHWebhookReceiverSearchDTO
+	var receiverDTOs []GHWebhookEventDeliverSearchDTO
 	mapper := dto.Mapper{}
 	err := mapper.Map(&receiverDTOs, subs)
 	if err != nil {

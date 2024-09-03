@@ -101,6 +101,89 @@ definitions:
             type: string
           child:
             $ref: '#/definitions/ghWebhookSubscribeCreateFilter'
+  webhookEvent:
+    type: object
+    properties:
+      id:
+        type: integer
+        description: Webhook event id
+      hookMeta:
+        type: object
+        description: Webhook event meta
+        additionalProperties:
+          type: string
+      payload:
+        type: string
+        description: Webhook event payload
+      event:
+        type: string
+        description: Webhook event type
+      action:
+        type: string
+        description: Webhook event action
+      orgRepo:
+        type: string
+        description: Webhook event org/repo
+      hookId:
+        type: string
+        description: Webhook event hook id
+      payloadId:
+        type: string
+        description: Webhook event payload id
+      githubId:
+        type: integer
+        description: Webhook event github id
+  webhookEventReceiver:
+    type: object
+    properties:
+      ghWebhookReceiverId:
+        type: integer
+        description: Webhook receiver id
+      delivered:
+        type: boolean
+        description: Webhook event delivered
+      error:
+        type: string
+        description: Webhook event error
+  webhookEventDeliver:
+    type: object
+    properties:
+      id:
+        type: integer
+        description: Webhook event id
+      ghWebhookReceiverId:
+        type: integer
+        description: Webhook receiver id
+      ghWebhookReceivers:
+        type: array
+        items:
+          $ref: '#/definitions/webhookEventReceiver'
+      delivered:
+        type: boolean
+      error:
+        type: string
+        description: Webhook event error
+  webhookEventReceiverDeliver:
+    type: object
+    properties:
+      id:
+        type: integer
+        description: Webhook event id
+      ghWebhookReceiverId:
+        type: integer
+        description: Webhook receiver id
+      ghWebhookEventDeliverId:
+        type: integer
+        description: Webhook receiver deliver id
+      delivered:
+        type: boolean
+        description: Webhook event delivered
+      error:
+        type: string
+        description: Webhook event error
+      ack:
+        type: string
+        description: Webhook event ack
 
 info:
   contact:
@@ -524,6 +607,132 @@ paths:
       description: unsubscribe a webhook receiver
       produces:
         - application/json
+      responses:
+        204:
+          description: No Content
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/errors"
+
+  /gh-webhook-event:
+    get:
+      summary: get all webhook events
+      description: get all webhook events
+      produces:
+        - application/json
+      responses:
+        200:
+          description: webhook events
+          schema:
+            type: object
+            properties:
+              entries:
+                type: array
+                items:
+                  $ref: "#/definitions/webhookEvent"
+              entryCount:
+                type: integer
+        default:
+          description: unexpected error
+
+  /gh-webhook-event/:id:
+    get:
+      summary: get a webhook event
+      description: get a webhook event
+      produces:
+        - application/json
+      responses:
+        200:
+          description: webhook event
+          schema:
+            $ref: "#/definitions/webhookEvent"
+        default:
+          description: unexpected error
+
+  /gh-webhook-event-deliver:
+    get:
+      summary: get all webhook events deliver
+      description: get all webhook events deliver
+      produces:
+        - application/json
+      responses:
+        200:
+          description: webhook events deliviers
+          schema:
+            type: object
+            properties:
+              entries:
+                type: array
+                items:
+                  $ref: "#/definitions/webhookEventDeliver"
+              entryCount:
+                type: integer
+        default:
+          description: unexpected error
+  /gh-webhook-event-deliver/:id:
+    get:
+      summary: get a webhook event deliver
+      description: get a webhook event deliver
+      produces:
+        - application/json
+      responses:
+        200:
+          description: webhook event deliver
+          schema:
+            $ref: "#/definitions/webhookEventDeliver"
+        default:
+          description: unexpected error
+  /gh-webhook-event-receiver-deliver:
+    get:
+      summary: get all webhook events receiver delivers
+      description: get all webhook events receiver deliver
+      produces:
+        - application/json
+      responses:
+        200:
+          description: webhook events receiver deliviers
+          schema:
+            type: object
+            properties:
+              entries:
+                type: array
+                items:
+                  $ref: "#/definitions/webhookEventReceiverDeliver"
+              entryCount:
+                type: integer
+        default:
+          description: unexpected error
+  /gh-webhook-event-receiver-deliver/:id:
+    get:
+      summary: get a webhook event receiver deliver
+      description: get a webhook event receiver deliver
+      produces:
+        - application/json
+      responses:
+        200:
+          description: webhook event receiver deliver
+          schema:
+            $ref: "#/definitions/webhookEventReceiverDeliver"
+        default:
+          description: unexpected error
+  /gh-webhook-event-receiver-deliver/:id/ack:
+    put:
+      summary: ack a webhook event receiver deliver
+      description: ack a webhook event receiver deliver
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: ack
+          description: The ack.
+          schema:
+            type: object
+            required:
+              - ack
+            properties:
+              ack:
+                type: string
       responses:
         204:
           description: No Content
