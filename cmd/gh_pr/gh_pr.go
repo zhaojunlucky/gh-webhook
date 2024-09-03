@@ -91,10 +91,10 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
-
-	url := ginSwagger.URL(fmt.Sprintf("%s/docs/swagger/swagger.yaml", cfg.APIUrl)) // The url pointing to API definition
+	r.Static("/docs", "/Users/jun/magicworldz/github/gh-webhook/docs")
+	url := ginSwagger.URL(fmt.Sprintf("%s/docs/swagger/swagger.yaml", cfg.APIUrl[0:len(cfg.APIUrl)-len(cfg.APIPrefix)])) // The url pointing to API definition
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler, url))
-
+	//http://localhost:8080/swagger/index.html
 	err = r.Run(cfg.ListenAddr)
 	if err != nil {
 		log.Panic(err)

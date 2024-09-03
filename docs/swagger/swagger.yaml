@@ -204,6 +204,8 @@ paths:
       consumes:
         - application/json
       description: deliver a github webhook event
+      tags:
+        - webhook
       produces:
         - application/json
       responses:
@@ -230,6 +232,8 @@ paths:
       consumes:
         - application/json
       description: get webhook handler queue info
+      tags:
+        - webhook
       produces:
         - application/json
       responses:
@@ -245,6 +249,8 @@ paths:
     post:
       summary: create a new github server
       description: create a github server
+      tags:
+        - github
       consumes:
         - application/json
       produces:
@@ -278,6 +284,8 @@ paths:
     get:
       summary: get all github servers
       description: get all github servers
+      tags:
+        - github
       produces:
         - application/json
       responses:
@@ -301,6 +309,8 @@ paths:
     patch:
       summary: update a new github server
       description: update a github server
+      tags:
+        - github
       consumes:
         - application/json
       produces:
@@ -330,6 +340,8 @@ paths:
     get:
       summary: get a github server
       description: get a github server
+      tags:
+        - github
       produces:
         - application/json
       responses:
@@ -344,6 +356,8 @@ paths:
     delete:
       summary: delete a github server
       description: delete a github server
+      tags:
+        - github
       produces:
         - application/json
       responses:
@@ -357,6 +371,8 @@ paths:
     post:
       summary: create a new webhook receiver
       description: create a webhook receiver
+      tags:
+        - webhook receiver
       consumes:
         - application/json
       produces:
@@ -405,6 +421,8 @@ paths:
     get:
       summary: get all webhook receivers
       description: get all webhook receivers
+      tags:
+        - webhook receiver
       produces:
         - application/json
       responses:
@@ -427,6 +445,8 @@ paths:
     patch:
       summary: update a webhook receiver
       description: update a webhook receiver
+      tags:
+        - webhook receiver
       consumes:
         - application/json
       produces:
@@ -474,6 +494,8 @@ paths:
     get:
       summary: get a webhook receiver
       description: get a webhook receiver
+      tags:
+        - webhook receiver
       produces:
         - application/json
       responses:
@@ -488,6 +510,8 @@ paths:
     delete:
       summary: delete a webhook receiver
       description: delete a webhook receiver
+      tags:
+        - webhook receiver
       produces:
         - application/json
       responses:
@@ -502,6 +526,8 @@ paths:
     post:
       summary: create a subscribe for webhook receiver
       description: create a subscribe for webhook receiver
+      tags:
+        - webhook receiver
       produces:
         - application/json
       responses:
@@ -522,6 +548,8 @@ paths:
     get:
       summary: get all subscribe for webhook receiver
       description: get all subscribe for webhook receiver
+      tags:
+        - webhook receiver
       produces:
         - application/json
       responses:
@@ -553,6 +581,8 @@ paths:
     get:
       summary: get a subscribe for webhook receiver
       description: get a subscribe for webhook receiver
+      tags:
+        - webhook receiver
       produces:
         - application/json
       responses:
@@ -577,6 +607,8 @@ paths:
     patch:
       summary: update a subscribe for webhook receiver
       description: update a subscribe for webhook receiver
+      tags:
+        - webhook receiver
       consumes:
         - application/json
       produces:
@@ -605,6 +637,8 @@ paths:
     delete:
       summary: unsubscribe a webhook receiver
       description: unsubscribe a webhook receiver
+      tags:
+        - webhook receiver
       produces:
         - application/json
       responses:
@@ -619,6 +653,8 @@ paths:
     get:
       summary: get all webhook events
       description: get all webhook events
+      tags:
+        - webhook event
       produces:
         - application/json
       responses:
@@ -640,6 +676,8 @@ paths:
     get:
       summary: get a webhook event
       description: get a webhook event
+      tags:
+        - webhook event
       produces:
         - application/json
       responses:
@@ -654,6 +692,8 @@ paths:
     get:
       summary: get all webhook events deliver
       description: get all webhook events deliver
+      tags:
+        - webhook event deliver
       produces:
         - application/json
       responses:
@@ -674,6 +714,8 @@ paths:
     get:
       summary: get a webhook event deliver
       description: get a webhook event deliver
+      tags:
+        - webhook event deliver
       produces:
         - application/json
       responses:
@@ -687,6 +729,8 @@ paths:
     get:
       summary: get all webhook events receiver delivers
       description: get all webhook events receiver deliver
+      tags:
+        - webhook event receiver deliver
       produces:
         - application/json
       responses:
@@ -707,6 +751,8 @@ paths:
     get:
       summary: get a webhook event receiver deliver
       description: get a webhook event receiver deliver
+      tags:
+        - webhook event receiver deliver
       produces:
         - application/json
       responses:
@@ -720,6 +766,8 @@ paths:
     put:
       summary: ack a webhook event receiver deliver
       description: ack a webhook event receiver deliver
+      tags:
+        - webhook event receiver deliver
       produces:
         - application/json
       parameters:
