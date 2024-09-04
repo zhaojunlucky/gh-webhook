@@ -30,6 +30,7 @@ func (h *GHWebhookHandler) Post(c *gin.Context) {
 	if r.Error != nil {
 		log.Errorf("failed to find github server: %v", r.Error)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "Failed to find github server"})
+		return
 	}
 
 	// add validate source
@@ -42,11 +43,13 @@ func (h *GHWebhookHandler) Post(c *gin.Context) {
 	if err != nil {
 		log.Errorf("failed to read payload from wehbook: %v", err)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "Failed to read payload"})
+		return
 	}
 	var payload map[string]interface{}
 	if err := json.Unmarshal(body, &payload); err != nil {
 		log.Errorf("failed to unmarshal payload: %v", err)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "Failed to unmarshal payload as map[string]interface{}"})
+		return
 	}
 	action, err := jsonpath.Get("$.action", payload)
 	if err != nil {
@@ -75,6 +78,7 @@ func (h *GHWebhookHandler) Post(c *gin.Context) {
 	if r.Error != nil {
 		log.Errorf("failed to create webhook event: %v", r.Error)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "Failed to create webhook event"})
+		return
 	}
 	// push to queue
 	go h.push(ghHookEvent)

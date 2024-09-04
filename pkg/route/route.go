@@ -13,6 +13,8 @@ var routers = []core.RouterRegister{
 	&api.GHWebhookReceiverAPIHandler{},
 	&api.GHWebhookSubscribeAPIHandler{},
 	&api.GitHubAPIHandler{},
+	&api.GHWebhookEventDeliverAPIHandler{},
+	&api.GHWebhookEventReceiverDeliverAPIHandler{},
 }
 
 func Init(ctx *core.GHPRContext) error {

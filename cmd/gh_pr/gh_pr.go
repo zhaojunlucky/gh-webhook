@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	gh_webhook "gh-webhook"
 	"gh-webhook/pkg/config"
 	"gh-webhook/pkg/core"
 	"gh-webhook/pkg/model"
@@ -14,6 +15,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"io"
+	"net/http"
 	"os"
 	"path"
 	"runtime"
@@ -91,8 +93,8 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
-	r.Static("/docs", "/Users/jun/magicworldz/github/gh-webhook/docs")
-	url := ginSwagger.URL(fmt.Sprintf("%s/docs/swagger/swagger.yaml", cfg.APIUrl[0:len(cfg.APIUrl)-len(cfg.APIPrefix)])) // The url pointing to API definition
+	r.StaticFS("/ui", http.FS(gh_webhook.DocsFS))
+	url := ginSwagger.URL(fmt.Sprintf("%s/ui/docs/swagger/swagger.yaml", cfg.APIUrl[0:len(cfg.APIUrl)-len(cfg.APIPrefix)])) // The url pointing to API definition
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler, url))
 	//http://localhost:8080/swagger/index.html
 	err = r.Run(cfg.ListenAddr)

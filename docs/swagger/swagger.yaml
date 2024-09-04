@@ -208,6 +208,12 @@ paths:
         - webhook
       produces:
         - application/json
+      parameters:
+        - in: body
+          name: github
+          description: The github webhook event payload.
+          schema:
+            type: object
       responses:
         "200":
           description: ok
@@ -316,6 +322,11 @@ paths:
       produces:
         - application/json
       parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: github id
         - in: body
           name: github
           description: The github server to update.
@@ -344,6 +355,12 @@ paths:
         - github
       produces:
         - application/json
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: github id
       responses:
         200:
           description: github server
@@ -360,6 +377,12 @@ paths:
         - github
       produces:
         - application/json
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: github id
       responses:
         204:
           description: No Content
@@ -441,7 +464,7 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/errors"
-  /gh-webhook-receiver/:id:
+  /gh-webhook-receiver/{id}:
     patch:
       summary: update a webhook receiver
       description: update a webhook receiver
@@ -452,6 +475,11 @@ paths:
       produces:
         - application/json
       parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: web hook receiver id
         - in: body
           name: webhookReceiver
           description: The webhook receiver to update.
@@ -498,6 +526,12 @@ paths:
         - webhook receiver
       produces:
         - application/json
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: web hook receiver id
       responses:
         200:
           description: webhook receiver
@@ -514,6 +548,12 @@ paths:
         - webhook receiver
       produces:
         - application/json
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: web hook receiver id
       responses:
         204:
           description: No Content
@@ -522,7 +562,7 @@ paths:
           schema:
             $ref: "#/definitions/errors"
 
-  /gh-webhook-receiver/:id/subscribe:
+  /gh-webhook-receiver/{id}/subscribe:
     post:
       summary: create a subscribe for webhook receiver
       description: create a subscribe for webhook receiver
@@ -530,6 +570,23 @@ paths:
         - webhook receiver
       produces:
         - application/json
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: webhook receiver id
+        - in: body
+          name: webhookReceiverSubscribeCreate
+          description: The webhook receiver to create.
+          schema:
+            type: object
+            properties:
+              event:
+                type: string
+                description: subscribe event
+              filters:
+                $ref: "#/definitions/ghWebhookSubscribeCreateFilter"
       responses:
         201:
           description: create subscribe
@@ -552,6 +609,12 @@ paths:
         - webhook receiver
       produces:
         - application/json
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: web hook receiver id
       responses:
         200:
           description: webhook receivers
@@ -577,7 +640,7 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/errors"
-  /gh-webhook-receiver/:id/subscribe/:cId:
+  /gh-webhook-receiver/{id}/subscribe/{cId}:
     get:
       summary: get a subscribe for webhook receiver
       description: get a subscribe for webhook receiver
@@ -585,6 +648,17 @@ paths:
         - webhook receiver
       produces:
         - application/json
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: web hook receiver id
+        - in: path
+          name: cId
+          type: integer
+          required: true
+          description: subscribe id
       responses:
         200:
           description: get webhook receiver subscribe
@@ -614,6 +688,16 @@ paths:
       produces:
         - application/json
       parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: web hook receiver id
+        - in: path
+          name: cId
+          type: integer
+          required: true
+          description: subscribe id
         - in: body
           name: webhookReceiver
           description: The webhook receiver to update.
@@ -641,6 +725,17 @@ paths:
         - webhook receiver
       produces:
         - application/json
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: web hook receiver id
+        - in: path
+          name: cId
+          type: integer
+          required: true
+          description: subscribe id
       responses:
         204:
           description: No Content
@@ -672,7 +767,7 @@ paths:
         default:
           description: unexpected error
 
-  /gh-webhook-event/:id:
+  /gh-webhook-event/{id}:
     get:
       summary: get a webhook event
       description: get a webhook event
@@ -680,6 +775,12 @@ paths:
         - webhook event
       produces:
         - application/json
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: webhook event id
       responses:
         200:
           description: webhook event
@@ -710,7 +811,7 @@ paths:
                 type: integer
         default:
           description: unexpected error
-  /gh-webhook-event-deliver/:id:
+  /gh-webhook-event-deliver/{id}:
     get:
       summary: get a webhook event deliver
       description: get a webhook event deliver
@@ -718,6 +819,12 @@ paths:
         - webhook event deliver
       produces:
         - application/json
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: webhook event deliver id
       responses:
         200:
           description: webhook event deliver
@@ -747,7 +854,7 @@ paths:
                 type: integer
         default:
           description: unexpected error
-  /gh-webhook-event-receiver-deliver/:id:
+  /gh-webhook-event-receiver-deliver/{id}:
     get:
       summary: get a webhook event receiver deliver
       description: get a webhook event receiver deliver
@@ -755,6 +862,12 @@ paths:
         - webhook event receiver deliver
       produces:
         - application/json
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: webhook event receiver deliver id
       responses:
         200:
           description: webhook event receiver deliver
@@ -762,7 +875,7 @@ paths:
             $ref: "#/definitions/webhookEventReceiverDeliver"
         default:
           description: unexpected error
-  /gh-webhook-event-receiver-deliver/:id/ack:
+  /gh-webhook-event-receiver-deliver/{id}/ack:
     put:
       summary: ack a webhook event receiver deliver
       description: ack a webhook event receiver deliver
@@ -771,6 +884,11 @@ paths:
       produces:
         - application/json
       parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: webhook event receiver deliver id
         - in: body
           name: ack
           description: The ack.

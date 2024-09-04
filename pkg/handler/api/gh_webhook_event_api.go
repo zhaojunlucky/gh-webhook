@@ -28,6 +28,7 @@ type GHWebhookEventSearchDTO struct {
 }
 
 func (h *GHWebhookEventAPIHandler) Register(c *core.GHPRContext) error {
+	h.db = c.Db
 	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-event/:id", c.Cfg.APIPrefix), h.Get)
 	c.Gin.GET(fmt.Sprintf("%s/gh-webhook-event/", c.Cfg.APIPrefix), h.List)
 	return nil
@@ -58,11 +59,11 @@ func (h *GHWebhookEventAPIHandler) Get(c *gin.Context) {
 
 func (h *GHWebhookEventAPIHandler) List(c *gin.Context) {
 
-	var subs []model.GHWebhookReceiver
+	var subs []model.GHWebhookEvent
 	if !core.SearchModel(c, h.db, GHWebhookEventSearchDTO{}, &subs) {
 		return
 	}
-	var receiverDTOs []GHWebhookReceiverSearchDTO
+	var receiverDTOs []GHWebhookEventSearchDTO
 	mapper := dto.Mapper{}
 	err := mapper.Map(&receiverDTOs, subs)
 	if err != nil {

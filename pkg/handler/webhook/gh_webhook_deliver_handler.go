@@ -97,7 +97,7 @@ func (h *GHWebhookDeliverHandler) handle(routineId int32, ghEvent model.GHWebhoo
 	}
 
 	var receiver []model.GHWebhookReceiver
-	r := h.db.Model(&model.GHWebhookReceiver{}).Preload("Subscribes").Where("github_id = ?", ghEvent.GitHubId).Find(&receiver)
+	r := h.db.Model(&model.GHWebhookReceiver{}).Preload("Subscribes").Where("git_hub_id = ?", ghEvent.GitHubId).Find(&receiver)
 	if r.Error != nil {
 		log.Errorf("[go routine %d] failed to find receiver: %v", routineId, r.Error)
 		receiverLog.Delivered = false
