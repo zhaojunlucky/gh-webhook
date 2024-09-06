@@ -8,6 +8,7 @@ require (
 	github.com/dranikpg/dto-mapper v0.2.1
 	github.com/expr-lang/expr v1.16.3
 	github.com/gin-gonic/gin v1.9.1
+	github.com/google/uuid v1.6.0
 	github.com/rbicker/go-rsql v0.4.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/swaggo/files v1.0.1

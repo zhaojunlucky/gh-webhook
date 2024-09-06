@@ -187,7 +187,7 @@ func (s *GHWebHookSubscribe) Matches(payload map[string]interface{}, ghEvent GHW
 	for k, v := range s.Filters {
 		err := v.Matches(payload, ghEvent, k)
 		if err != nil {
-			log.Warningf("filter %s doesn't match", k)
+			log.Warningf("filter %s doesn't match: %s", k, err.Error())
 
 		} else {
 			log.Infof("filter %s matches", k)

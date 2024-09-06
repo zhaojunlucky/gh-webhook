@@ -8,4 +8,5 @@ type GitHub struct {
 	Web  string
 	API  string `gorm:"uniqueIndex"`
 	Name string `gorm:"uniqueIndex"`
+	UUID string
 }

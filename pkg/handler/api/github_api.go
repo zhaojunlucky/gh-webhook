@@ -7,6 +7,7 @@ import (
 	"gh-webhook/pkg/model"
 	"github.com/dranikpg/dto-mapper"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/http"
@@ -32,6 +33,7 @@ type GitHubSearchDTO struct {
 	Web       string    `json:"web" rsql:"web,filter,sort"`
 	API       string    `json:"api" rsql:"api,filter,sort"`
 	Name      string    `json:"name" rsql:"name,filter,sort"`
+	UUID      string    `json:"uuid" rsql:"uuid,filter,sort"`
 }
 
 // GitHubAPIHandler path: github
@@ -61,6 +63,7 @@ func (h *GitHubAPIHandler) Post(c *gin.Context) {
 		Web:  ghCreateDTO.Web,
 		API:  ghCreateDTO.API,
 		Name: ghCreateDTO.Name,
+		UUID: uuid.New().String(),
 	}
 	db := h.db.Save(&github)
 	if db.Error != nil {

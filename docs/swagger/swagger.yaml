@@ -198,7 +198,7 @@ info:
   title: Github webhook API
   version: "1.0"
 paths:
-  /hook/gh-webhook:
+  /hook/gh-webhook/{uuid}:
     post:
       summary: Deliver a github webhook event
       consumes:
@@ -209,6 +209,16 @@ paths:
       produces:
         - application/json
       parameters:
+        - in: path
+          name: uuid
+          type: string
+          required: true
+          description: uuid
+        - name: X-GitHub-Event
+          in: header
+          description: X-GitHub-Event
+          required: true
+          type: string
         - in: body
           name: github
           description: The github webhook event payload.

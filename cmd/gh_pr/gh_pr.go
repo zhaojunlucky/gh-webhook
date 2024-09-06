@@ -97,6 +97,7 @@ func main() {
 	url := ginSwagger.URL(fmt.Sprintf("%s/ui/docs/swagger/swagger.yaml", cfg.APIUrl[0:len(cfg.APIUrl)-len(cfg.APIPrefix)])) // The url pointing to API definition
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler, url))
 	//http://localhost:8080/swagger/index.html
+	log.Infof("swagger url: %s/swagger/index.html", cfg.APIUrl[0:len(cfg.APIUrl)-len(cfg.APIPrefix)])
 	err = r.Run(cfg.ListenAddr)
 	if err != nil {
 		log.Panic(err)

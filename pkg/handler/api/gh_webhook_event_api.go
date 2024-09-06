@@ -37,6 +37,7 @@ func (h *GHWebhookEventAPIHandler) Register(c *core.GHPRContext) error {
 func (h *GHWebhookEventAPIHandler) Get(c *gin.Context) {
 	id := core.GetPathVarUInt(c, "id")
 	if id == nil {
+		c.JSON(http.StatusBadRequest, model.NewErrorMsgDTOFromErr(fmt.Errorf("invalid id")))
 		return
 	}
 	ghEvent := model.GHWebhookEvent{}

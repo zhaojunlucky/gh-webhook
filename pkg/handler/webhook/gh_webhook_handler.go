@@ -21,12 +21,17 @@ type GHWebhookHandler struct {
 
 // Post receive webhook post event from github
 func (h *GHWebhookHandler) Post(c *gin.Context) {
+	uuid, ok := c.Params.Get("uuid")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "Failed to get uuid"})
+	}
+
 	if !h.validate(c) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "Failed to validate webhook"})
 		return
 	}
 	var github model.GitHub
-	r := h.db.First(&github, "api = ?", c.Request.Host)
+	r := h.db.First(&github, "uuid = ?", uuid)
 	if r.Error != nil {
 		log.Errorf("failed to find github server: %v", r.Error)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"status": "Failed to find github server"})
@@ -96,6 +101,6 @@ func (h *GHWebhookHandler) validate(c *gin.Context) bool {
 func (h *GHWebhookHandler) Register(c *core.GHPRContext) error {
 	h.db = c.Db
 	h.queue = model.GetQueue()
-	c.Gin.POST(fmt.Sprintf("%s/hook/gh-webhook", c.Cfg.APIPrefix), h.Post)
+	c.Gin.POST(fmt.Sprintf("%s/hook/gh-webhook/:uuid", c.Cfg.APIPrefix), h.Post)
 	return nil
 }
