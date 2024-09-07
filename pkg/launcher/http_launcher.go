@@ -63,10 +63,10 @@ func (h *HttpAppLauncher) Launch(routineId int32, config *config.Config, re mode
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 && resp.StatusCode != 201 {
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return fmt.Errorf("failed to send request: %s", resp.Status)
 	}
-	body := "unknown"
+	body := ""
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorf("[go routine %d] failed to read response body: %v", routineId, err)

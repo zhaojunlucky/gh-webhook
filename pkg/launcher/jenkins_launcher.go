@@ -21,7 +21,7 @@ func (h *JenkinsLauncher) GetPayload(c *config.Config, re model.GHWebhookReceive
 
 	payload := map[string]interface{}{
 		"url":             fmt.Sprintf("%s/event/%d", c.APIUrl, event.ID),
-		"event":           event,
+		"event":           event.Event,
 		"eventDeliverUrl": fmt.Sprintf("%s/gh-webhook-event-deliver/%d", c.APIUrl, receiverLog.ID),
 	}
 
